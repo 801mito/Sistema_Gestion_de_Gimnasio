@@ -9,7 +9,7 @@ de la membresía.
 - JavaFX 21.
 - Maven.
 - PostgreSQL 16.
-- JDBC para la futura conexión a la base de datos.
+- JDBC y el controlador PostgreSQL para la conexión a la base de datos.
 
 ## Alcance del MVP
 
@@ -35,5 +35,26 @@ Desde la raíz del repositorio, ejecutar:
 mvn clean javafx:run
 ```
 
-La primera ejecución descarga las dependencias de JavaFX. La conexión a
-PostgreSQL se configurará en la siguiente tarea mediante JDBC.
+La primera ejecución descarga las dependencias de JavaFX y PostgreSQL JDBC.
+
+## Conexión a PostgreSQL
+
+La aplicación no almacena credenciales en el repositorio. Antes de ejecutar el
+verificador de conexión, define estas variables **en la misma terminal de
+PowerShell**:
+
+```powershell
+$env:DB_URL = "jdbc:postgresql://localhost:5432/sistema_gimnasio"
+$env:DB_USER = "postgres"
+$env:DB_PASSWORD = "tu_contraseña"
+```
+
+Para validar que existe conexión y que PostgreSQL responde, ejecuta:
+
+```powershell
+mvn exec:java
+```
+
+El verificador abre la conexión, ejecuta `SELECT 1` y la cierra
+automáticamente. Si no se configuró alguna variable o la conexión falla,
+muestra un mensaje claro sin imprimir la contraseña.
