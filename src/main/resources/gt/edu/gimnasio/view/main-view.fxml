@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox alignment="CENTER" spacing="16.0"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="gt.edu.gimnasio.controller.MainController">
+    <padding>
+        <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
+    </padding>
+    <Label styleClass="title" text="Sistema de Gestión de Gimnasio" />
+    <Label styleClass="subtitle" text="Aplicación de escritorio con JavaFX" />
+    <Label styleClass="status" text="Proyecto inicial configurado correctamente." />
+</VBox>

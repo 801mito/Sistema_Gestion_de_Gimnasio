@@ -1,0 +1,22 @@
+.root {
+    -fx-background-color: #f6f8fb;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #173b6c;
+}
+
+.subtitle {
+    -fx-font-size: 16px;
+    -fx-text-fill: #53657d;
+}
+
+.status {
+    -fx-padding: 12px 18px;
+    -fx-background-color: #e3f3ea;
+    -fx-background-radius: 6px;
+    -fx-text-fill: #1d6b3c;
+}
