@@ -1,2 +1,2 @@
-/** Configuración técnica de la aplicación, incluida la futura conexión JDBC. */
+/** Configuración técnica de la aplicación, incluida la conexión JDBC. */
 package gt.edu.gimnasio.config;
