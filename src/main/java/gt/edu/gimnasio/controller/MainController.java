@@ -40,11 +40,8 @@ public class MainController {
         Label title = createLabel("Inicio", "content-title");
         Label description = createLabel(
                 "Bienvenido al Sistema de Gestión de Gimnasio.", "content-description");
-        Label message = createLabel(
-                "Selecciona un módulo en el menú para comenzar.", "welcome-message");
-
         VBox card = createCard("Estado del proyecto", "La base de la aplicación y la conexión a PostgreSQL están configuradas.");
-        contentArea.getChildren().setAll(title, description, message, card);
+        contentArea.getChildren().setAll(title, description, card);
     }
 
     @FXML

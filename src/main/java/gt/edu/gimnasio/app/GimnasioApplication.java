@@ -18,7 +18,7 @@ public class GimnasioApplication extends Application {
         scene.getStylesheets().add(
                 GimnasioApplication.class.getResource("/gt/edu/gimnasio/view/styles.css").toExternalForm());
 
-        stage.setTitle("Sistema de Gestión de Gimnasio");
+        stage.setTitle("Gestión de Gimnasio");
         stage.setMinWidth(900);
         stage.setMinHeight(580);
         stage.setScene(scene);
