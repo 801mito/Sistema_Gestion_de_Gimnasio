@@ -86,3 +86,30 @@
     -fx-font-size: 14px;
     -fx-text-fill: #53657d;
 }
+
+.plans-table {
+    -fx-background-color: white;
+    -fx-border-color: #dbe3ef;
+    -fx-border-radius: 8px;
+}
+
+.plans-table .column-header-background {
+    -fx-background-color: #eaf0f8;
+}
+
+.plans-table .column-header {
+    -fx-background-color: transparent;
+    -fx-font-weight: bold;
+}
+
+.empty-table-message {
+    -fx-font-size: 14px;
+    -fx-text-fill: #53657d;
+}
+
+.database-error {
+    -fx-background-color: #fff0f0;
+    -fx-background-radius: 6px;
+    -fx-padding: 14px;
+    -fx-text-fill: #9d2222;
+}
