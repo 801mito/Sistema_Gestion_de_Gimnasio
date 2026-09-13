@@ -14,13 +14,13 @@ public class GimnasioApplication extends Application {
     public void start(Stage stage) throws IOException {
         FXMLLoader loader = new FXMLLoader(
                 GimnasioApplication.class.getResource("/gt/edu/gimnasio/view/main-view.fxml"));
-        Scene scene = new Scene(loader.load(), 900, 600);
+        Scene scene = new Scene(loader.load(), 1000, 650);
         scene.getStylesheets().add(
                 GimnasioApplication.class.getResource("/gt/edu/gimnasio/view/styles.css").toExternalForm());
 
         stage.setTitle("Sistema de Gestión de Gimnasio");
-        stage.setMinWidth(720);
-        stage.setMinHeight(480);
+        stage.setMinWidth(900);
+        stage.setMinHeight(580);
         stage.setScene(scene);
         stage.show();
     }
