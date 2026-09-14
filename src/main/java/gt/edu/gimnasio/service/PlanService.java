@@ -28,17 +28,39 @@ public class PlanService {
      * @throws SQLException si ocurre un error al acceder a PostgreSQL.
      */
     public Plan createPlan(String name, int durationDays) throws PlanValidationException, SQLException {
-        String normalizedName = validateName(name);
-
-        if (durationDays < 1) {
-            throw new PlanValidationException("La duración debe ser de al menos un día.");
-        }
+        String normalizedName = validatePlanData(name, durationDays);
 
         if (planRepository.existsByName(normalizedName)) {
             throw new PlanValidationException("Ya existe un plan con ese nombre.");
         }
 
         return planRepository.save(normalizedName, durationDays);
+    }
+
+    /** Valida y actualiza un plan existente. */
+    public Plan updatePlan(int id, String name, int durationDays) throws PlanValidationException, SQLException {
+        String normalizedName = validatePlanData(name, durationDays);
+
+        if (planRepository.existsByNameExcludingId(normalizedName, id)) {
+            throw new PlanValidationException("Ya existe otro plan con ese nombre.");
+        }
+
+        return planRepository.update(id, normalizedName, durationDays);
+    }
+
+    /** Cambia el estado del plan sin borrarlo. */
+    public void changeActiveStatus(int id, boolean active) throws SQLException {
+        planRepository.updateActiveStatus(id, active);
+    }
+
+    private String validatePlanData(String name, int durationDays) throws PlanValidationException {
+        String normalizedName = validateName(name);
+
+        if (durationDays < 1) {
+            throw new PlanValidationException("La duración debe ser de al menos un día.");
+        }
+
+        return normalizedName;
     }
 
     private String validateName(String name) throws PlanValidationException {

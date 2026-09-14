@@ -121,6 +121,30 @@
     -fx-background-color: #1a528b;
 }
 
+.secondary-button,
+.danger-button,
+.link-button {
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+    -fx-padding: 9px 14px;
+}
+
+.secondary-button {
+    -fx-background-color: #e5edf7;
+    -fx-text-fill: #234d7b;
+}
+
+.danger-button {
+    -fx-background-color: #fbe4e4;
+    -fx-text-fill: #9d2222;
+}
+
+.link-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2467aa;
+    -fx-underline: true;
+}
+
 .feedback-success,
 .feedback-error {
     -fx-background-radius: 6px;

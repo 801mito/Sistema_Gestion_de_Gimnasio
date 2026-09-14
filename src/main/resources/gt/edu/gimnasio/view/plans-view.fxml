@@ -19,7 +19,7 @@
     <Label styleClass="content-title" text="Planes" />
     <Label styleClass="content-description" text="Registra y consulta los planes de membresía disponibles." />
     <VBox spacing="12.0" styleClass="information-card">
-        <Label styleClass="card-title" text="Registrar plan" />
+        <Label styleClass="card-title" text="Registrar o editar plan" />
         <HBox alignment="BOTTOM_LEFT" spacing="12.0">
             <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                 <Label styleClass="field-label" text="Nombre" />
@@ -30,6 +30,12 @@
                 <Spinner fx:id="durationSpinner" editable="true" prefWidth="150.0" />
             </VBox>
             <Button mnemonicParsing="false" onAction="#savePlan" styleClass="primary-button" text="Guardar plan" />
+            <Button fx:id="updateButton" disable="true" mnemonicParsing="false" onAction="#updatePlan" styleClass="secondary-button" text="Actualizar plan" />
+        </HBox>
+        <HBox spacing="10.0">
+            <Button fx:id="activateButton" disable="true" mnemonicParsing="false" onAction="#activatePlan" styleClass="secondary-button" text="Activar" />
+            <Button fx:id="deactivateButton" disable="true" mnemonicParsing="false" onAction="#deactivatePlan" styleClass="danger-button" text="Desactivar" />
+            <Button mnemonicParsing="false" onAction="#clearForm" styleClass="link-button" text="Limpiar selección" />
         </HBox>
         <Label fx:id="feedbackLabel" managed="false" visible="false" wrapText="true" />
     </VBox>
