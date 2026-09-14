@@ -1,17 +1,13 @@
 package gt.edu.gimnasio.controller;
 
+import java.io.IOException;
 import java.util.List;
 
 import javafx.fxml.FXML;
-import javafx.beans.property.ReadOnlyIntegerWrapper;
-import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
 import javafx.scene.layout.VBox;
-import gt.edu.gimnasio.model.Plan;
-import gt.edu.gimnasio.repository.PlanRepository;
 
 /** Controla la navegación de los módulos principales de la aplicación. */
 public class MainController {
@@ -59,25 +55,15 @@ public class MainController {
     private void showPlans() {
         setActiveButton(plansButton);
 
-        Label title = createLabel("Planes", "content-title");
-        Label description = createLabel(
-                "Consulta los planes de membresía registrados en la base de datos.", "content-description");
-
         try {
-            List<Plan> plans = new PlanRepository().findAll();
-            TableView<Plan> plansTable = createPlansTable();
-            plansTable.getItems().setAll(plans);
-
-            if (plans.isEmpty()) {
-                plansTable.setPlaceholder(createLabel("No hay planes registrados todavía.", "empty-table-message"));
-            }
-
-            contentArea.getChildren().setAll(title, description, plansTable);
-        } catch (Exception exception) {
-            Label error = createLabel(
-                    "No fue posible cargar los planes. Verifica la conexión a PostgreSQL y las variables de entorno.",
-                    "database-error");
-            contentArea.getChildren().setAll(title, description, error);
+            FXMLLoader loader = new FXMLLoader(
+                    MainController.class.getResource("/gt/edu/gimnasio/view/plans-view.fxml"));
+            VBox plansView = loader.load();
+            contentArea.getChildren().clear();
+            contentArea.getChildren().add(plansView);
+        } catch (IOException exception) {
+            Label error = createLabel("No fue posible cargar la vista de planes.", "database-error");
+            contentArea.getChildren().setAll(error);
         }
     }
 
@@ -124,29 +110,4 @@ public class MainController {
         return card;
     }
 
-    private TableView<Plan> createPlansTable() {
-        TableView<Plan> table = new TableView<>();
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
-        table.setPrefHeight(360);
-        table.getStyleClass().add("plans-table");
-
-        TableColumn<Plan, Number> idColumn = new TableColumn<>("ID");
-        idColumn.setCellValueFactory(cell -> new ReadOnlyIntegerWrapper(cell.getValue().getId()));
-
-        TableColumn<Plan, String> nameColumn = new TableColumn<>("Nombre");
-        nameColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().getName()));
-
-        TableColumn<Plan, Number> durationColumn = new TableColumn<>("Duración (días)");
-        durationColumn.setCellValueFactory(cell -> new ReadOnlyIntegerWrapper(cell.getValue().getDurationDays()));
-
-        TableColumn<Plan, String> statusColumn = new TableColumn<>("Estado");
-        statusColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(
-                cell.getValue().isActive() ? "Activo" : "Inactivo"));
-
-        table.getColumns().add(idColumn);
-        table.getColumns().add(nameColumn);
-        table.getColumns().add(durationColumn);
-        table.getColumns().add(statusColumn);
-        return table;
-    }
 }
