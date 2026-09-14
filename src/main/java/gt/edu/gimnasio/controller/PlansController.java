@@ -7,6 +7,7 @@ import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
@@ -23,6 +24,7 @@ public class PlansController {
 
     private final PlanRepository planRepository = new PlanRepository();
     private final PlanService planService = new PlanService(planRepository);
+    private Plan selectedPlan;
 
     @FXML
     private TextField nameField;
@@ -49,6 +51,15 @@ public class PlansController {
     private Label feedbackLabel;
 
     @FXML
+    private Button updateButton;
+
+    @FXML
+    private Button activateButton;
+
+    @FXML
+    private Button deactivateButton;
+
+    @FXML
     private void initialize() {
         durationSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 3650, 30));
 
@@ -59,6 +70,9 @@ public class PlansController {
                 cell.getValue().isActive() ? "Activo" : "Inactivo"));
 
         plansTable.setPlaceholder(new Label("No hay planes registrados todavía."));
+        plansTable.getSelectionModel().selectedItemProperty().addListener(
+                (observable, previousPlan, currentPlan) -> selectPlan(currentPlan));
+        updateSelectionControls(null);
         loadPlans();
     }
 
@@ -77,6 +91,45 @@ public class PlansController {
         }
     }
 
+    @FXML
+    private void updatePlan() {
+        if (selectedPlan == null) {
+            showFeedback("Selecciona un plan para actualizarlo.", false);
+            return;
+        }
+
+        try {
+            Plan updatedPlan = planService.updatePlan(
+                    selectedPlan.getId(), nameField.getText(), durationSpinner.getValue());
+            loadPlans();
+            clearForm();
+            showFeedback("Plan \"" + updatedPlan.getName() + "\" actualizado correctamente.", true);
+        } catch (PlanValidationException exception) {
+            showFeedback(exception.getMessage(), false);
+        } catch (SQLException exception) {
+            showFeedback("No fue posible actualizar el plan. Verifica la conexión a PostgreSQL.", false);
+        }
+    }
+
+    @FXML
+    private void activatePlan() {
+        changeActiveStatus(true);
+    }
+
+    @FXML
+    private void deactivatePlan() {
+        changeActiveStatus(false);
+    }
+
+    @FXML
+    private void clearForm() {
+        plansTable.getSelectionModel().clearSelection();
+        nameField.clear();
+        durationSpinner.getValueFactory().setValue(30);
+        selectedPlan = null;
+        updateSelectionControls(null);
+    }
+
     private void loadPlans() {
         try {
             List<Plan> plans = planRepository.findAll();
@@ -86,6 +139,42 @@ public class PlansController {
             plansTable.setItems(FXCollections.observableArrayList());
             showFeedback("No fue posible cargar los planes. Configura la conexión a PostgreSQL.", false);
         }
+    }
+
+    private void selectPlan(Plan plan) {
+        selectedPlan = plan;
+
+        if (plan != null) {
+            nameField.setText(plan.getName());
+            durationSpinner.getValueFactory().setValue(plan.getDurationDays());
+        }
+
+        updateSelectionControls(plan);
+    }
+
+    private void changeActiveStatus(boolean active) {
+        if (selectedPlan == null) {
+            showFeedback("Selecciona un plan para cambiar su estado.", false);
+            return;
+        }
+
+        try {
+            planService.changeActiveStatus(selectedPlan.getId(), active);
+            String action = active ? "activado" : "desactivado";
+            String planName = selectedPlan.getName();
+            loadPlans();
+            clearForm();
+            showFeedback("Plan \"" + planName + "\" " + action + " correctamente.", true);
+        } catch (SQLException exception) {
+            showFeedback("No fue posible cambiar el estado del plan.", false);
+        }
+    }
+
+    private void updateSelectionControls(Plan plan) {
+        boolean hasSelection = plan != null;
+        updateButton.setDisable(!hasSelection);
+        activateButton.setDisable(!hasSelection || plan.isActive());
+        deactivateButton.setDisable(!hasSelection || !plan.isActive());
     }
 
     private void showFeedback(String message, boolean success) {
