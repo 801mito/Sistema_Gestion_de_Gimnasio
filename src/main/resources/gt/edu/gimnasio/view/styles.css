@@ -102,6 +102,41 @@
     -fx-font-weight: bold;
 }
 
+.field-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #355070;
+}
+
+.primary-button {
+    -fx-background-color: #2467aa;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+    -fx-padding: 10px 16px;
+    -fx-text-fill: white;
+}
+
+.primary-button:hover {
+    -fx-background-color: #1a528b;
+}
+
+.feedback-success,
+.feedback-error {
+    -fx-background-radius: 6px;
+    -fx-padding: 10px 12px;
+}
+
+.feedback-success {
+    -fx-background-color: #e3f3ea;
+    -fx-text-fill: #1d6b3c;
+}
+
+.feedback-error {
+    -fx-background-color: #fff0f0;
+    -fx-text-fill: #9d2222;
+}
+
 .empty-table-message {
     -fx-font-size: 14px;
     -fx-text-fill: #53657d;
