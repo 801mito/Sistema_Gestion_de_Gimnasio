@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="16.0" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="gt.edu.gimnasio.controller.MembersController">
+    <padding>
+        <Insets bottom="36.0" left="36.0" right="36.0" top="36.0" />
+    </padding>
+    <Label styleClass="content-title" text="Miembros" />
+    <Label styleClass="content-description" text="Consulta las personas inscritas en el gimnasio." />
+    <Label fx:id="feedbackLabel" managed="false" visible="false" wrapText="true" />
+    <TableView fx:id="membersTable" prefHeight="400.0" styleClass="members-table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn" prefWidth="70.0" text="ID" />
+            <TableColumn fx:id="firstNamesColumn" prefWidth="170.0" text="Nombres" />
+            <TableColumn fx:id="lastNamesColumn" prefWidth="170.0" text="Apellidos" />
+            <TableColumn fx:id="documentColumn" prefWidth="150.0" text="Documento" />
+            <TableColumn fx:id="phoneColumn" prefWidth="130.0" text="Teléfono" />
+            <TableColumn fx:id="emailColumn" prefWidth="220.0" text="Correo" />
+        </columns>
+    </TableView>
+</VBox>

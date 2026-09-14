@@ -102,6 +102,21 @@
     -fx-font-weight: bold;
 }
 
+.members-table {
+    -fx-background-color: white;
+    -fx-border-color: #dbe3ef;
+    -fx-border-radius: 8px;
+}
+
+.members-table .column-header-background {
+    -fx-background-color: #eaf0f8;
+}
+
+.members-table .column-header {
+    -fx-background-color: transparent;
+    -fx-font-weight: bold;
+}
+
 .field-label {
     -fx-font-size: 13px;
     -fx-font-weight: bold;

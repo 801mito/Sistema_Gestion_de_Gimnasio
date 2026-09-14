@@ -48,7 +48,18 @@ public class MainController {
 
     @FXML
     private void showMembers() {
-        showSection("Miembros", "Administra la información de las personas inscritas en el gimnasio.", membersButton);
+        setActiveButton(membersButton);
+
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    MainController.class.getResource("/gt/edu/gimnasio/view/members-view.fxml"));
+            VBox membersView = loader.load();
+            contentArea.getChildren().clear();
+            contentArea.getChildren().add(membersView);
+        } catch (IOException exception) {
+            Label error = createLabel("No fue posible cargar la vista de miembros.", "database-error");
+            contentArea.getChildren().setAll(error);
+        }
     }
 
     @FXML
