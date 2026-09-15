@@ -7,6 +7,7 @@ import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -21,6 +22,7 @@ public class MembersController {
 
     private final MemberRepository memberRepository = new MemberRepository();
     private final MemberService memberService = new MemberService(memberRepository);
+    private Member selectedMember;
 
     @FXML
     private TextField firstNamesField;
@@ -62,6 +64,9 @@ public class MembersController {
     private Label feedbackLabel;
 
     @FXML
+    private Button updateButton;
+
+    @FXML
     private void initialize() {
         idColumn.setCellValueFactory(cell -> new ReadOnlyIntegerWrapper(cell.getValue().getId()));
         firstNamesColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().getFirstNames()));
@@ -71,6 +76,9 @@ public class MembersController {
         emailColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(valueOrEmpty(cell.getValue().getEmail())));
 
         membersTable.setPlaceholder(new Label("No hay miembros registrados todavía."));
+        membersTable.getSelectionModel().selectedItemProperty().addListener(
+                (observable, previousMember, currentMember) -> selectMember(currentMember));
+        updateButton.setDisable(true);
         loadMembers();
     }
 
@@ -91,6 +99,28 @@ public class MembersController {
         }
     }
 
+    @FXML
+    private void updateMember() {
+        if (selectedMember == null) {
+            showFeedback("Selecciona un miembro para actualizarlo.", false);
+            return;
+        }
+
+        try {
+            Member updatedMember = memberService.updateMember(
+                    selectedMember.getId(), firstNamesField.getText(), lastNamesField.getText(),
+                    documentField.getText(), phoneField.getText(), emailField.getText());
+            loadMembers();
+            clearForm();
+            showFeedback("Miembro \"" + updatedMember.getFirstNames() + " " + updatedMember.getLastNames()
+                    + "\" actualizado correctamente.", true);
+        } catch (MemberValidationException exception) {
+            showFeedback(exception.getMessage(), false);
+        } catch (SQLException exception) {
+            showFeedback("No fue posible actualizar el miembro. Verifica la conexión a PostgreSQL.", false);
+        }
+    }
+
     private void loadMembers() {
         try {
             List<Member> members = memberRepository.findAll();
@@ -102,12 +132,29 @@ public class MembersController {
         }
     }
 
+    @FXML
     private void clearForm() {
+        membersTable.getSelectionModel().clearSelection();
         firstNamesField.clear();
         lastNamesField.clear();
         documentField.clear();
         phoneField.clear();
         emailField.clear();
+        selectedMember = null;
+        updateButton.setDisable(true);
+    }
+
+    private void selectMember(Member member) {
+        selectedMember = member;
+        updateButton.setDisable(member == null);
+
+        if (member != null) {
+            firstNamesField.setText(member.getFirstNames());
+            lastNamesField.setText(member.getLastNames());
+            documentField.setText(valueOrEmpty(member.getDocumentNumber()));
+            phoneField.setText(valueOrEmpty(member.getPhone()));
+            emailField.setText(valueOrEmpty(member.getEmail()));
+        }
     }
 
     private String valueOrEmpty(String value) {

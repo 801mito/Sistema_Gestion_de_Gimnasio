@@ -17,6 +17,34 @@ public class MemberService {
     /** Valida y registra un miembro nuevo. */
     public Member createMember(String firstNames, String lastNames, String documentNumber,
                                String phone, String email) throws MemberValidationException, SQLException {
+        MemberData memberData = validateMemberData(firstNames, lastNames, documentNumber, phone, email);
+
+        if (memberData.documentNumber() != null && memberRepository.existsByDocument(memberData.documentNumber())) {
+            throw new MemberValidationException("Ya existe un miembro con ese número de documento.");
+        }
+
+        return memberRepository.save(
+                memberData.firstNames(), memberData.lastNames(), memberData.documentNumber(),
+                memberData.phone(), memberData.email());
+    }
+
+    /** Valida y actualiza los datos básicos de un miembro existente. */
+    public Member updateMember(int id, String firstNames, String lastNames, String documentNumber,
+                               String phone, String email) throws MemberValidationException, SQLException {
+        MemberData memberData = validateMemberData(firstNames, lastNames, documentNumber, phone, email);
+
+        if (memberData.documentNumber() != null
+                && memberRepository.existsByDocumentExcludingId(memberData.documentNumber(), id)) {
+            throw new MemberValidationException("Ya existe otro miembro con ese número de documento.");
+        }
+
+        return memberRepository.update(
+                id, memberData.firstNames(), memberData.lastNames(), memberData.documentNumber(),
+                memberData.phone(), memberData.email());
+    }
+
+    private MemberData validateMemberData(String firstNames, String lastNames, String documentNumber,
+                                          String phone, String email) throws MemberValidationException {
         String normalizedFirstNames = requireText(firstNames, "Los nombres son obligatorios.");
         String normalizedLastNames = requireText(lastNames, "Los apellidos son obligatorios.");
         String normalizedDocument = optionalText(documentNumber);
@@ -27,11 +55,7 @@ public class MemberService {
         validatePhone(normalizedPhone);
         validateEmail(normalizedEmail);
 
-        if (normalizedDocument != null && memberRepository.existsByDocument(normalizedDocument)) {
-            throw new MemberValidationException("Ya existe un miembro con ese número de documento.");
-        }
-
-        return memberRepository.save(
+        return new MemberData(
                 normalizedFirstNames, normalizedLastNames, normalizedDocument, normalizedPhone, normalizedEmail);
     }
 
@@ -69,5 +93,9 @@ public class MemberService {
         if (email != null && !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
             throw new MemberValidationException("El correo electrónico no tiene un formato válido.");
         }
+    }
+
+    private record MemberData(String firstNames, String lastNames, String documentNumber,
+                              String phone, String email) {
     }
 }
