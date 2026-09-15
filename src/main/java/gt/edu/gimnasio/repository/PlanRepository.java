@@ -33,6 +33,13 @@ public class PlanRepository {
             RETURNING plan_id, nombre, duracion_dias, plan_activo, plan_creado_en
             """;
 
+    private static final String FIND_ACTIVE_SQL = """
+            SELECT plan_id, nombre, duracion_dias, plan_activo, plan_creado_en
+            FROM plan
+            WHERE plan_activo = TRUE
+            ORDER BY nombre
+            """;
+
     private static final String EXISTS_BY_NAME_EXCLUDING_ID_SQL = """
             SELECT EXISTS (
                 SELECT 1
@@ -66,6 +73,22 @@ public class PlanRepository {
 
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL);
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                plans.add(mapPlan(resultSet));
+            }
+        }
+
+        return plans;
+    }
+
+    /** Obtiene sólo los planes que pueden asignarse a una membresía nueva. */
+    public List<Plan> findActive() throws SQLException {
+        List<Plan> plans = new ArrayList<>();
+
+        try (Connection connection = DatabaseConnection.openConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_ACTIVE_SQL);
              ResultSet resultSet = statement.executeQuery()) {
 
             while (resultSet.next()) {

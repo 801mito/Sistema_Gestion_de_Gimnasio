@@ -36,6 +36,11 @@ public class Member {
         return lastNames;
     }
 
+    /** Devuelve el nombre completo para presentarlo en controles de selección. */
+    public String getFullName() {
+        return firstNames + " " + lastNames;
+    }
+
     public String getDocumentNumber() {
         return documentNumber;
     }
