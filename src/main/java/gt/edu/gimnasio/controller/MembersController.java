@@ -10,13 +10,32 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import gt.edu.gimnasio.model.Member;
 import gt.edu.gimnasio.repository.MemberRepository;
+import gt.edu.gimnasio.service.MemberService;
+import gt.edu.gimnasio.service.MemberValidationException;
 
 /** Controla la consulta de miembros desde la vista FXML. */
 public class MembersController {
 
     private final MemberRepository memberRepository = new MemberRepository();
+    private final MemberService memberService = new MemberService(memberRepository);
+
+    @FXML
+    private TextField firstNamesField;
+
+    @FXML
+    private TextField lastNamesField;
+
+    @FXML
+    private TextField documentField;
+
+    @FXML
+    private TextField phoneField;
+
+    @FXML
+    private TextField emailField;
 
     @FXML
     private TableView<Member> membersTable;
@@ -55,29 +74,54 @@ public class MembersController {
         loadMembers();
     }
 
+    @FXML
+    private void saveMember() {
+        try {
+            Member member = memberService.createMember(
+                    firstNamesField.getText(), lastNamesField.getText(), documentField.getText(),
+                    phoneField.getText(), emailField.getText());
+            clearForm();
+            loadMembers();
+            showFeedback("Miembro \"" + member.getFirstNames() + " " + member.getLastNames()
+                    + "\" registrado correctamente.", true);
+        } catch (MemberValidationException exception) {
+            showFeedback(exception.getMessage(), false);
+        } catch (SQLException exception) {
+            showFeedback("No fue posible registrar el miembro. Verifica la conexión a PostgreSQL.", false);
+        }
+    }
+
     private void loadMembers() {
         try {
             List<Member> members = memberRepository.findAll();
             membersTable.setItems(FXCollections.observableArrayList(members));
-            showFeedback("");
+            showFeedback("", true);
         } catch (SQLException | IllegalStateException exception) {
             membersTable.setItems(FXCollections.observableArrayList());
-            showFeedback("No fue posible cargar los miembros. Configura la conexión a PostgreSQL.");
+            showFeedback("No fue posible cargar los miembros. Configura la conexión a PostgreSQL.", false);
         }
+    }
+
+    private void clearForm() {
+        firstNamesField.clear();
+        lastNamesField.clear();
+        documentField.clear();
+        phoneField.clear();
+        emailField.clear();
     }
 
     private String valueOrEmpty(String value) {
         return value == null ? "" : value;
     }
 
-    private void showFeedback(String message) {
+    private void showFeedback(String message, boolean success) {
         feedbackLabel.setText(message);
         feedbackLabel.setVisible(!message.isBlank());
         feedbackLabel.setManaged(!message.isBlank());
-        feedbackLabel.getStyleClass().remove("feedback-error");
+        feedbackLabel.getStyleClass().removeAll("feedback-success", "feedback-error");
 
         if (!message.isBlank()) {
-            feedbackLabel.getStyleClass().add("feedback-error");
+            feedbackLabel.getStyleClass().add(success ? "feedback-success" : "feedback-error");
         }
     }
 }
