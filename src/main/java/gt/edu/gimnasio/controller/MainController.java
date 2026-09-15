@@ -80,7 +80,18 @@ public class MainController {
 
     @FXML
     private void showMemberships() {
-        showSection("Membresías", "Gestiona las membresías activas, congeladas y vencidas.", membershipsButton);
+        setActiveButton(membershipsButton);
+
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    MainController.class.getResource("/gt/edu/gimnasio/view/memberships-view.fxml"));
+            VBox membershipsView = loader.load();
+            contentArea.getChildren().clear();
+            contentArea.getChildren().add(membershipsView);
+        } catch (IOException exception) {
+            Label error = createLabel("No fue posible cargar la vista de membresías.", "database-error");
+            contentArea.getChildren().setAll(error);
+        }
     }
 
     @FXML

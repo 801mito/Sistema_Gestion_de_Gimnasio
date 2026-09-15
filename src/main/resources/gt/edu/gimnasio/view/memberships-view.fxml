@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="16.0" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="gt.edu.gimnasio.controller.MembershipsController">
+    <padding>
+        <Insets bottom="36.0" left="36.0" right="36.0" top="36.0" />
+    </padding>
+    <Label styleClass="content-title" text="Membresías" />
+    <Label styleClass="content-description" text="Consulta el historial de membresías asignadas a los miembros." />
+    <Label fx:id="feedbackLabel" managed="false" visible="false" wrapText="true" />
+    <TableView fx:id="membershipsTable" prefHeight="400.0" styleClass="memberships-table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn" prefWidth="70.0" text="ID" />
+            <TableColumn fx:id="memberColumn" prefWidth="240.0" text="Miembro" />
+            <TableColumn fx:id="planColumn" prefWidth="180.0" text="Plan" />
+            <TableColumn fx:id="statusColumn" prefWidth="130.0" text="Estado" />
+            <TableColumn fx:id="startDateColumn" prefWidth="140.0" text="Fecha inicio" />
+            <TableColumn fx:id="endDateColumn" prefWidth="140.0" text="Fecha final" />
+        </columns>
+    </TableView>
+</VBox>
