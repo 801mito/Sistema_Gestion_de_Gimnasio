@@ -18,7 +18,7 @@
     <Label styleClass="content-title" text="Miembros" />
     <Label styleClass="content-description" text="Registra y consulta las personas inscritas en el gimnasio." />
     <VBox spacing="12.0" styleClass="information-card">
-        <Label styleClass="card-title" text="Registrar miembro" />
+        <Label styleClass="card-title" text="Registrar o editar miembro" />
         <HBox spacing="12.0">
             <VBox spacing="6.0" HBox.hgrow="ALWAYS">
                 <Label styleClass="field-label" text="Nombres *" />
@@ -43,7 +43,9 @@
                 <TextField fx:id="emailField" promptText="Opcional" />
             </VBox>
             <Button mnemonicParsing="false" onAction="#saveMember" styleClass="primary-button" text="Guardar miembro" />
+            <Button fx:id="updateButton" disable="true" mnemonicParsing="false" onAction="#updateMember" styleClass="secondary-button" text="Actualizar miembro" />
         </HBox>
+        <Button mnemonicParsing="false" onAction="#clearForm" styleClass="link-button" text="Limpiar selección" />
         <Label fx:id="feedbackLabel" managed="false" visible="false" wrapText="true" />
     </VBox>
     <TableView fx:id="membersTable" prefHeight="400.0" styleClass="members-table" VBox.vgrow="ALWAYS">
