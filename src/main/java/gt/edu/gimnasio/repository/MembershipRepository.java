@@ -27,6 +27,20 @@ public class MembershipRepository {
             ORDER BY membresia.fecha_inicio DESC, membresia.membresia_id DESC
             """;
 
+    private static final String EXISTS_ACTIVE_FOR_MEMBER_SQL = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM membresia
+                WHERE miembro_id = ?
+                  AND estado = 'ACTIVA'
+            )
+            """;
+
+    private static final String SAVE_SQL = """
+            INSERT INTO membresia (plan_id, miembro_id, estado, fecha_inicio, fecha_fin)
+            VALUES (?, ?, 'ACTIVA', ?, ?)
+            """;
+
     /** Obtiene el historial de membresías junto con su miembro y plan asociados. */
     public List<Membership> findAll() throws SQLException {
         List<Membership> memberships = new ArrayList<>();
@@ -48,5 +62,33 @@ public class MembershipRepository {
         }
 
         return memberships;
+    }
+
+    /** Indica si el miembro ya cuenta con una membresía activa. */
+    public boolean hasActiveMembership(int memberId) throws SQLException {
+        try (Connection connection = DatabaseConnection.openConnection();
+             PreparedStatement statement = connection.prepareStatement(EXISTS_ACTIVE_FOR_MEMBER_SQL)) {
+
+            statement.setInt(1, memberId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getBoolean(1);
+            }
+        }
+    }
+
+    /** Registra una membresía activa con las fechas ya calculadas por el servicio. */
+    public void save(int memberId, int planId, java.time.LocalDate startDate,
+                     java.time.LocalDate endDate) throws SQLException {
+        try (Connection connection = DatabaseConnection.openConnection();
+             PreparedStatement statement = connection.prepareStatement(SAVE_SQL)) {
+
+            statement.setInt(1, planId);
+            statement.setInt(2, memberId);
+            statement.setObject(3, startDate);
+            statement.setObject(4, endDate);
+            statement.executeUpdate();
+        }
     }
 }
