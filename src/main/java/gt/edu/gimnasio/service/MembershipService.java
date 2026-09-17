@@ -1,19 +1,26 @@
 package gt.edu.gimnasio.service;
 
 import java.sql.SQLException;
+import java.sql.Connection;
 import java.time.LocalDate;
 
+import gt.edu.gimnasio.config.DatabaseConnection;
 import gt.edu.gimnasio.model.Member;
 import gt.edu.gimnasio.model.Plan;
+import gt.edu.gimnasio.repository.AccessCodeRepository;
 import gt.edu.gimnasio.repository.MembershipRepository;
 
 /** Aplica las reglas de negocio al asignar membresías. */
 public class MembershipService {
 
     private final MembershipRepository membershipRepository;
+    private final AccessCodeRepository accessCodeRepository;
+    private final AccessCodeGenerator accessCodeGenerator;
 
     public MembershipService(MembershipRepository membershipRepository) {
         this.membershipRepository = membershipRepository;
+        accessCodeRepository = new AccessCodeRepository();
+        accessCodeGenerator = new AccessCodeGenerator(accessCodeRepository);
     }
 
     /** Calcula la fecha final inclusiva a partir de la duración del plan. */
@@ -22,7 +29,7 @@ public class MembershipService {
     }
 
     /** Valida y asigna una membresía activa a un miembro. */
-    public void assignMembership(Member member, Plan plan, LocalDate startDate)
+    public String assignMembership(Member member, Plan plan, LocalDate startDate)
             throws MembershipValidationException, SQLException {
         if (member == null) {
             throw new MembershipValidationException("Selecciona un miembro.");
@@ -44,7 +51,20 @@ public class MembershipService {
             throw new MembershipValidationException("El miembro ya tiene una membresía activa.");
         }
 
-        membershipRepository.save(
-                member.getId(), plan.getId(), startDate, calculateEndDate(plan, startDate));
+        try (Connection connection = DatabaseConnection.openConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                int membershipId = membershipRepository.save(
+                        connection, member.getId(), plan.getId(), startDate, calculateEndDate(plan, startDate));
+                String accessCode = accessCodeGenerator.generateUniqueCode(connection);
+                accessCodeRepository.save(connection, membershipId, accessCode);
+                connection.commit();
+                return accessCode;
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        }
     }
 }
