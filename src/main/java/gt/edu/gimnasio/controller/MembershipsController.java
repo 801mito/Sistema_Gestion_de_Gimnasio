@@ -116,10 +116,11 @@ public class MembershipsController {
             Member member = memberComboBox.getValue();
             Plan plan = planComboBox.getValue();
             LocalDate startDate = startDatePicker.getValue();
-            membershipService.assignMembership(member, plan, startDate);
+            String accessCode = membershipService.assignMembership(member, plan, startDate);
             loadMemberships();
             clearForm();
-            showFeedback("Membresía asignada correctamente a " + member.getFullName() + ".", true);
+            showFeedback("Membresía asignada correctamente a " + member.getFullName()
+                    + ". Código generado: " + accessCode + ".", true);
         } catch (MembershipValidationException exception) {
             showFeedback(exception.getMessage(), false);
         } catch (SQLException exception) {

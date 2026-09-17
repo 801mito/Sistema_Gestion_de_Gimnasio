@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,17 +79,24 @@ public class MembershipRepository {
         }
     }
 
-    /** Registra una membresía activa con las fechas ya calculadas por el servicio. */
-    public void save(int memberId, int planId, java.time.LocalDate startDate,
-                     java.time.LocalDate endDate) throws SQLException {
-        try (Connection connection = DatabaseConnection.openConnection();
-             PreparedStatement statement = connection.prepareStatement(SAVE_SQL)) {
+    /** Registra una membresía activa y devuelve su identificador generado. */
+    public int save(Connection connection, int memberId, int planId, java.time.LocalDate startDate,
+                    java.time.LocalDate endDate) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(SAVE_SQL, Statement.RETURN_GENERATED_KEYS)) {
 
             statement.setInt(1, planId);
             statement.setInt(2, memberId);
             statement.setObject(3, startDate);
             statement.setObject(4, endDate);
             statement.executeUpdate();
+
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getInt(1);
+                }
+            }
         }
+
+        throw new SQLException("No fue posible obtener el identificador de la membresía registrada.");
     }
 }
