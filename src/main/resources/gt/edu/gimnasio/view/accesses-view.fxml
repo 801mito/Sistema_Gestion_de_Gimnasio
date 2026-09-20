@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="16.0" xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="gt.edu.gimnasio.controller.AccessesController">
+    <padding>
+        <Insets bottom="36.0" left="36.0" right="36.0" top="36.0" />
+    </padding>
+    <Label styleClass="content-title" text="Códigos de acceso" />
+    <Label styleClass="content-description" text="Consulta los códigos generados automáticamente al asignar una membresía." />
+    <Label fx:id="feedbackLabel" managed="false" visible="false" wrapText="true" />
+    <TableView fx:id="accessCodesTable" prefHeight="400.0" styleClass="access-codes-table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn" prefWidth="70.0" text="ID" />
+            <TableColumn fx:id="memberColumn" prefWidth="230.0" text="Miembro" />
+            <TableColumn fx:id="planColumn" prefWidth="150.0" text="Plan" />
+            <TableColumn fx:id="codeColumn" prefWidth="180.0" text="Código" />
+            <TableColumn fx:id="statusColumn" prefWidth="110.0" text="Estado" />
+            <TableColumn fx:id="createdAtColumn" prefWidth="160.0" text="Fecha de creación" />
+        </columns>
+    </TableView>
+</VBox>

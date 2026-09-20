@@ -7,13 +7,18 @@ public class AccessCode {
 
     private final int id;
     private final int membershipId;
+    private final String memberName;
+    private final String planName;
     private final String code;
     private final boolean active;
     private final LocalDateTime createdAt;
 
-    public AccessCode(int id, int membershipId, String code, boolean active, LocalDateTime createdAt) {
+    public AccessCode(int id, int membershipId, String memberName, String planName,
+                      String code, boolean active, LocalDateTime createdAt) {
         this.id = id;
         this.membershipId = membershipId;
+        this.memberName = memberName;
+        this.planName = planName;
         this.code = code;
         this.active = active;
         this.createdAt = createdAt;
@@ -25,6 +30,14 @@ public class AccessCode {
 
     public int getMembershipId() {
         return membershipId;
+    }
+
+    public String getMemberName() {
+        return memberName;
+    }
+
+    public String getPlanName() {
+        return planName;
     }
 
     public String getCode() {
