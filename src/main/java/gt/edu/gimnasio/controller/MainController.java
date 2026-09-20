@@ -96,7 +96,17 @@ public class MainController {
 
     @FXML
     private void showAccess() {
-        showSection("Accesos", "Registra y valida los intentos de acceso al gimnasio.", accessButton);
+        setActiveButton(accessButton);
+
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    MainController.class.getResource("/gt/edu/gimnasio/view/accesses-view.fxml"));
+            VBox accessesView = loader.load();
+            contentArea.getChildren().setAll(accessesView);
+        } catch (IOException exception) {
+            Label error = createLabel("No fue posible cargar la vista de códigos de acceso.", "database-error");
+            contentArea.getChildren().setAll(error);
+        }
     }
 
     private void showSection(String titleText, String descriptionText, Button selectedButton) {
