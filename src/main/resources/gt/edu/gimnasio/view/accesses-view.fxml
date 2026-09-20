@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox spacing="16.0" xmlns="http://javafx.com/javafx/21"
@@ -14,6 +16,10 @@
     </padding>
     <Label styleClass="content-title" text="Códigos de acceso" />
     <Label styleClass="content-description" text="Consulta los códigos generados automáticamente al asignar una membresía." />
+    <HBox spacing="10.0">
+        <Button fx:id="activateButton" mnemonicParsing="false" onAction="#activateSelectedCode" styleClass="secondary-button" text="Activar código" />
+        <Button fx:id="deactivateButton" mnemonicParsing="false" onAction="#deactivateSelectedCode" styleClass="danger-button" text="Desactivar código" />
+    </HBox>
     <Label fx:id="feedbackLabel" managed="false" visible="false" wrapText="true" />
     <TableView fx:id="accessCodesTable" prefHeight="400.0" styleClass="access-codes-table" VBox.vgrow="ALWAYS">
         <columns>

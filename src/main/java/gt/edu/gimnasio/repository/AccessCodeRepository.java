@@ -41,6 +41,12 @@ public class AccessCodeRepository {
             ORDER BY codigo_acceso.codigo_creado_en DESC, codigo_acceso.codigo_acceso_id DESC
             """;
 
+    private static final String UPDATE_ACTIVE_STATUS_SQL = """
+            UPDATE codigo_acceso
+            SET codigo_activo = ?
+            WHERE codigo_acceso_id = ?
+            """;
+
     /** Obtiene los códigos registrados con su miembro y plan asociados. */
     public List<AccessCode> findAll() throws SQLException {
         List<AccessCode> accessCodes = new ArrayList<>();
@@ -62,6 +68,19 @@ public class AccessCodeRepository {
         }
 
         return accessCodes;
+    }
+
+    /** Cambia el estado de un código sin eliminar su historial. */
+    public void updateActiveStatus(int accessCodeId, boolean active) throws SQLException {
+        try (Connection connection = DatabaseConnection.openConnection();
+             PreparedStatement statement = connection.prepareStatement(UPDATE_ACTIVE_STATUS_SQL)) {
+            statement.setBoolean(1, active);
+            statement.setInt(2, accessCodeId);
+
+            if (statement.executeUpdate() != 1) {
+                throw new SQLException("No se encontró el código de acceso seleccionado.");
+            }
+        }
     }
 
     /** Indica si ya existe un código con el mismo valor. */
