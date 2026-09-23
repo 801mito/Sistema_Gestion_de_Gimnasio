@@ -9,6 +9,7 @@ import java.util.List;
 
 import gt.edu.gimnasio.config.DatabaseConnection;
 import gt.edu.gimnasio.model.AccessCode;
+import gt.edu.gimnasio.model.AccessValidationData;
 
 /** Guarda y consulta códigos de acceso asociados a membresías. */
 public class AccessCodeRepository {
@@ -47,6 +48,20 @@ public class AccessCodeRepository {
             WHERE codigo_acceso_id = ?
             """;
 
+    private static final String FIND_VALIDATION_DATA_BY_CODE_SQL = """
+            SELECT codigo_acceso.codigo_acceso_id,
+                   codigo_acceso.codigo,
+                   codigo_acceso.codigo_activo,
+                   miembro.nombres || ' ' || miembro.apellidos AS miembro_nombre,
+                   membresia.estado AS membresia_estado,
+                   membresia.fecha_inicio,
+                   membresia.fecha_fin
+            FROM codigo_acceso
+            INNER JOIN membresia ON membresia.membresia_id = codigo_acceso.membresia_id
+            INNER JOIN miembro ON miembro.miembro_id = membresia.miembro_id
+            WHERE codigo_acceso.codigo = ?
+            """;
+
     /** Obtiene los códigos registrados con su miembro y plan asociados. */
     public List<AccessCode> findAll() throws SQLException {
         List<AccessCode> accessCodes = new ArrayList<>();
@@ -79,6 +94,29 @@ public class AccessCodeRepository {
 
             if (statement.executeUpdate() != 1) {
                 throw new SQLException("No se encontró el código de acceso seleccionado.");
+            }
+        }
+    }
+
+    /** Busca la información necesaria para validar un código y su membresía. */
+    public AccessValidationData findValidationDataByCode(String code) throws SQLException {
+        try (Connection connection = DatabaseConnection.openConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_VALIDATION_DATA_BY_CODE_SQL)) {
+            statement.setString(1, code);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return null;
+                }
+
+                return new AccessValidationData(
+                        resultSet.getInt("codigo_acceso_id"),
+                        resultSet.getString("codigo"),
+                        resultSet.getBoolean("codigo_activo"),
+                        resultSet.getString("miembro_nombre"),
+                        resultSet.getString("membresia_estado"),
+                        resultSet.getObject("fecha_inicio", java.time.LocalDate.class),
+                        resultSet.getObject("fecha_fin", java.time.LocalDate.class));
             }
         }
     }
