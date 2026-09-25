@@ -5,6 +5,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
@@ -14,8 +15,20 @@
     <padding>
         <Insets bottom="36.0" left="36.0" right="36.0" top="36.0" />
     </padding>
-    <Label styleClass="content-title" text="Códigos de acceso" />
-    <Label styleClass="content-description" text="Consulta los códigos generados automáticamente al asignar una membresía." />
+    <Label styleClass="content-title" text="Control de accesos" />
+    <Label styleClass="content-description" text="Valida el ingreso con el código generado al asignar una membresía." />
+    <VBox spacing="12.0" styleClass="information-card">
+        <Label styleClass="card-title" text="Validar acceso" />
+        <HBox alignment="BOTTOM_LEFT" spacing="12.0">
+            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                <Label styleClass="field-label" text="Código de acceso" />
+                <TextField fx:id="accessCodeField" maxWidth="1.7976931348623157E308" onAction="#validateAccess" promptText="Ej.: GYM-ABCD1234" />
+            </VBox>
+            <Button mnemonicParsing="false" onAction="#validateAccess" styleClass="primary-button" text="Validar acceso" />
+        </HBox>
+        <Label fx:id="validationResultLabel" managed="false" visible="false" wrapText="true" />
+    </VBox>
+    <Label styleClass="card-title" text="Códigos de acceso" />
     <HBox spacing="10.0">
         <Button fx:id="activateButton" mnemonicParsing="false" onAction="#activateSelectedCode" styleClass="secondary-button" text="Activar código" />
         <Button fx:id="deactivateButton" mnemonicParsing="false" onAction="#deactivateSelectedCode" styleClass="danger-button" text="Desactivar código" />

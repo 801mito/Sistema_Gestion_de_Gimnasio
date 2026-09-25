@@ -5,7 +5,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import gt.edu.gimnasio.model.AccessCode;
+import gt.edu.gimnasio.model.AccessValidationResult;
 import gt.edu.gimnasio.repository.AccessCodeRepository;
+import gt.edu.gimnasio.service.AccessValidationService;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -14,6 +16,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 
 /** Controla la consulta de códigos de acceso generados para membresías. */
 public class AccessesController {
@@ -21,7 +24,11 @@ public class AccessesController {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final AccessCodeRepository accessCodeRepository = new AccessCodeRepository();
+    private final AccessValidationService accessValidationService =
+            new AccessValidationService(accessCodeRepository);
 
+    @FXML private TextField accessCodeField;
+    @FXML private Label validationResultLabel;
     @FXML private TableView<AccessCode> accessCodesTable;
     @FXML private TableColumn<AccessCode, Number> idColumn;
     @FXML private TableColumn<AccessCode, String> memberColumn;
@@ -60,6 +67,16 @@ public class AccessesController {
         changeSelectedCodeStatus(false);
     }
 
+    @FXML
+    private void validateAccess() {
+        try {
+            AccessValidationResult result = accessValidationService.validate(accessCodeField.getText());
+            showValidationResult(result.getReason(), result.isAuthorized());
+        } catch (SQLException | IllegalStateException exception) {
+            showValidationResult("No fue posible validar el acceso. Verifica la conexión a PostgreSQL.", false);
+        }
+    }
+
     private void changeSelectedCodeStatus(boolean active) {
         AccessCode selectedCode = accessCodesTable.getSelectionModel().getSelectedItem();
 
@@ -96,6 +113,17 @@ public class AccessesController {
         boolean codeSelected = selectedCode != null;
         activateButton.setDisable(!codeSelected || selectedCode.isActive());
         deactivateButton.setDisable(!codeSelected || !selectedCode.isActive());
+    }
+
+    private void showValidationResult(String message, boolean authorized) {
+        validationResultLabel.setText(message);
+        validationResultLabel.setVisible(!message.isBlank());
+        validationResultLabel.setManaged(!message.isBlank());
+        validationResultLabel.getStyleClass().removeAll("feedback-success", "feedback-error");
+
+        if (!message.isBlank()) {
+            validationResultLabel.getStyleClass().add(authorized ? "feedback-success" : "feedback-error");
+        }
     }
 
     private void showFeedback(String message, boolean success) {
