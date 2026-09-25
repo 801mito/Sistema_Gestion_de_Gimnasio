@@ -8,13 +8,15 @@ Esta carpeta contiene las pruebas del esquema PostgreSQL del Sistema de Gestión
 - Base de datos `sistema_gimnasio` creada.
 - Esquema inicial ejecutado.
 
-## Ejecución
+## Pruebas del esquema inicial
 
 1. Abrir la base de datos `sistema_gimnasio` en pgAdmin 4.
 2. Abrir **Query Tool**.
 3. Cargar `validar_esquema_restricciones.sql`.
 4. Ejecutar el script completo.
 5. Revisar la pestaña **Messages**.
+
+Este script corresponde al modelo inicial 1.0 y debe utilizarse antes de la migración multitenant.
 
 ## Cobertura
 
@@ -40,6 +42,21 @@ ROLLBACK
 ```
 
 El `ROLLBACK` elimina los datos ficticios creados durante la ejecución y conserva intacto el esquema.
+
+## Pruebas del modelo multitenant
+
+Después de aplicar `database/migrations/V1_1__preparar_modelo_multitenant.sql`, ejecutar `validar_modelo_multitenant.sql` desde **Query Tool**.
+
+El script comprueba:
+
+- Existencia y valores predeterminados del gimnasio inicial.
+- Asociación de los datos migrados con un gimnasio.
+- Nombres de planes y documentos únicos dentro de cada gimnasio.
+- Posibilidad de repetir esos valores entre gimnasios distintos.
+- Rechazo de membresías que mezclen planes y miembros de distintos gimnasios.
+- Creación correcta de membresías con datos del mismo gimnasio.
+
+La prueba también termina con `ROLLBACK`, por lo que no conserva el gimnasio ni los registros ficticios.
 
 ## Resultado de la validación
 
