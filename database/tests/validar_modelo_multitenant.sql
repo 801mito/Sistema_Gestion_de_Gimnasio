@@ -17,6 +17,9 @@ declare
    v_miembro_principal_id integer;
    v_miembro_secundario_id integer;
    v_membresia_id integer;
+   v_plan_compatibilidad_id integer;
+   v_miembro_compatibilidad_id integer;
+   v_gimnasio_asignado_id integer;
 begin
    select GIMNASIO_ID
    into v_gimnasio_principal_id
@@ -61,6 +64,40 @@ begin
    end if;
    raise notice 'OK: membresías existentes conservan relaciones del mismo gimnasio';
 
+   /* La versión actual de la aplicación todavía omite GIMNASIO_ID al insertar. */
+   insert into PLAN (NOMBRE, DURACION_DIAS)
+   values ('__PRUEBA_PLAN_COMPATIBILIDAD__', 7)
+   returning PLAN_ID, GIMNASIO_ID
+   into v_plan_compatibilidad_id, v_gimnasio_asignado_id;
+
+   if v_gimnasio_asignado_id <> v_gimnasio_principal_id then
+      raise exception 'FALLO: el plan no recibió el gimnasio inicial';
+   end if;
+
+   insert into MIEMBRO (NOMBRES, APELLIDOS, NUMERO_DOCUMENTO)
+   values ('Miembro', 'Compatibilidad', '__DOC_COMPATIBILIDAD__')
+   returning MIEMBRO_ID, GIMNASIO_ID
+   into v_miembro_compatibilidad_id, v_gimnasio_asignado_id;
+
+   if v_gimnasio_asignado_id <> v_gimnasio_principal_id then
+      raise exception 'FALLO: el miembro no recibió el gimnasio inicial';
+   end if;
+
+   insert into MEMBRESIA (PLAN_ID, MIEMBRO_ID, FECHA_INICIO, FECHA_FIN)
+   values (
+      v_plan_compatibilidad_id,
+      v_miembro_compatibilidad_id,
+      date '2026-09-01',
+      date '2026-09-07'
+   )
+   returning MEMBRESIA_ID, GIMNASIO_ID
+   into v_membresia_id, v_gimnasio_asignado_id;
+
+   if v_gimnasio_asignado_id <> v_gimnasio_principal_id then
+      raise exception 'FALLO: la membresía no recibió el gimnasio inicial';
+   end if;
+   raise notice 'OK: compatibilidad temporal con la aplicación actual';
+
    insert into GIMNASIO (NOMBRE)
    values ('__PRUEBA_GIMNASIO_SECUNDARIO__')
    returning GIMNASIO_ID into v_gimnasio_secundario_id;
@@ -88,7 +125,7 @@ begin
       v_gimnasio_principal_id,
       'Miembro',
       'Principal',
-      '__PRUEBA_DOCUMENTO_MULTITENANT__'
+      '__DOC_MULTITENANT__'
    )
    returning MIEMBRO_ID into v_miembro_principal_id;
 
@@ -97,7 +134,7 @@ begin
       v_gimnasio_secundario_id,
       'Miembro',
       'Secundario',
-      '__PRUEBA_DOCUMENTO_MULTITENANT__'
+      '__DOC_MULTITENANT__'
    )
    returning MIEMBRO_ID into v_miembro_secundario_id;
    raise notice 'OK: el mismo documento se permite en gimnasios distintos';
@@ -108,7 +145,7 @@ begin
          v_gimnasio_principal_id,
          'Miembro',
          'Duplicado',
-         '__PRUEBA_DOCUMENTO_MULTITENANT__'
+         '__DOC_MULTITENANT__'
       );
       raise exception 'FALLO: se permitió repetir un documento dentro del mismo gimnasio';
    exception

@@ -21,6 +21,21 @@ insert into GIMNASIO (NOMBRE)
 values ('Gimnasio Principal')
 on conflict (NOMBRE) do nothing;
 
+/*
+ * Compatibilidad temporal: mientras la aplicación todavía no envíe el
+ * gimnasio seleccionado, los nuevos registros pertenecerán al gimnasio
+ * inicial. Esta función se retirará cuando exista el contexto de gimnasio.
+ */
+create or replace function OBTENER_GIMNASIO_INICIAL_ID()
+returns INT4
+language sql
+stable
+as $function$
+   select GIMNASIO_ID
+   from GIMNASIO
+   where NOMBRE = 'Gimnasio Principal'
+$function$;
+
 alter table PLAN add column if not exists GIMNASIO_ID INT4;
 alter table MIEMBRO add column if not exists GIMNASIO_ID INT4;
 alter table MEMBRESIA add column if not exists GIMNASIO_ID INT4;
@@ -55,6 +70,13 @@ $$;
 alter table PLAN alter column GIMNASIO_ID set not null;
 alter table MIEMBRO alter column GIMNASIO_ID set not null;
 alter table MEMBRESIA alter column GIMNASIO_ID set not null;
+
+alter table PLAN
+   alter column GIMNASIO_ID set default OBTENER_GIMNASIO_INICIAL_ID();
+alter table MIEMBRO
+   alter column GIMNASIO_ID set default OBTENER_GIMNASIO_INICIAL_ID();
+alter table MEMBRESIA
+   alter column GIMNASIO_ID set default OBTENER_GIMNASIO_INICIAL_ID();
 
 /* La unicidad ahora se valida dentro de cada gimnasio. */
 alter table PLAN drop constraint if exists AK_AK_PLAN_NOMBRE_PLAN;

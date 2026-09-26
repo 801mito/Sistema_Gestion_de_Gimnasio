@@ -51,6 +51,7 @@ El script comprueba:
 
 - Existencia y valores predeterminados del gimnasio inicial.
 - Asociación de los datos migrados con un gimnasio.
+- Compatibilidad temporal con las inserciones de la aplicación actual.
 - Nombres de planes y documentos únicos dentro de cada gimnasio.
 - Posibilidad de repetir esos valores entre gimnasios distintos.
 - Rechazo de membresías que mezclen planes y miembros de distintos gimnasios.
