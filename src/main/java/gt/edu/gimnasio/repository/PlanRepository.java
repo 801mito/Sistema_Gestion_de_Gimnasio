@@ -26,13 +26,14 @@ public class PlanRepository {
             SELECT EXISTS (
                 SELECT 1
                 FROM plan
-                WHERE LOWER(nombre) = LOWER(?)
+                WHERE gimnasio_id = ?
+                  AND LOWER(nombre) = LOWER(?)
             )
             """;
 
     private static final String SAVE_SQL = """
-            INSERT INTO plan (nombre, duracion_dias)
-            VALUES (?, ?)
+            INSERT INTO plan (gimnasio_id, nombre, duracion_dias)
+            VALUES (?, ?, ?)
             RETURNING plan_id, nombre, duracion_dias, plan_activo, plan_creado_en
             """;
 
@@ -110,12 +111,15 @@ public class PlanRepository {
         return plans;
     }
 
-    /** Verifica si ya hay un plan con el mismo nombre, sin diferenciar mayúsculas. */
+    /** Comprueba duplicados de nombre dentro del gimnasio actual al registrar. */
     public boolean existsByName(String name) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
+
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(EXISTS_BY_NAME_SQL)) {
 
-            statement.setString(1, name);
+            statement.setInt(1, gymId);
+            statement.setString(2, name);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
@@ -124,13 +128,16 @@ public class PlanRepository {
         }
     }
 
-    /** Inserta un plan activo y devuelve sus datos generados por PostgreSQL. */
+    /** Inserta un plan activo asociado explícitamente al gimnasio actual. */
     public Plan save(String name, int durationDays) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
+
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(SAVE_SQL)) {
 
-            statement.setString(1, name);
-            statement.setInt(2, durationDays);
+            statement.setInt(1, gymId);
+            statement.setString(2, name);
+            statement.setInt(3, durationDays);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
