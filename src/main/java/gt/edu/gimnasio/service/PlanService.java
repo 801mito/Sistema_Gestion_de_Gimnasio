@@ -31,7 +31,7 @@ public class PlanService {
         String normalizedName = validatePlanData(name, durationDays);
 
         if (planRepository.existsByName(normalizedName)) {
-            throw new PlanValidationException("Ya existe un plan con ese nombre.");
+            throw new PlanValidationException("Ya existe un plan con ese nombre en el gimnasio actual.");
         }
 
         return planRepository.save(normalizedName, durationDays);

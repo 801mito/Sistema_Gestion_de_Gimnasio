@@ -96,9 +96,15 @@ public class PlansController {
             Plan plan = planService.createPlan(nameField.getText(), durationSpinner.getValue());
             nameField.clear();
             durationSpinner.getValueFactory().setValue(30);
-            loadPlans();
-            showFeedback("Plan \"" + plan.getName() + "\" registrado correctamente.", true);
+            if (loadPlans()) {
+                showFeedback("Plan \"" + plan.getName() + "\" registrado correctamente.", true);
+            } else {
+                showFeedback("Plan \"" + plan.getName() + "\" registrado, pero no fue posible actualizar la lista. "
+                        + "Vuelve a abrir Planes para consultar los datos.", false);
+            }
         } catch (PlanValidationException exception) {
+            showFeedback(exception.getMessage(), false);
+        } catch (IllegalStateException exception) {
             showFeedback(exception.getMessage(), false);
         } catch (SQLException exception) {
             showFeedback("No fue posible registrar el plan. Verifica la conexión a PostgreSQL.", false);
@@ -144,7 +150,7 @@ public class PlansController {
         updateSelectionControls(null);
     }
 
-    private void loadPlans() {
+    private boolean loadPlans() {
         plansLoaded = false;
         updateSelectionControls(null);
 
@@ -154,6 +160,7 @@ public class PlansController {
             plansTable.setItems(FXCollections.observableArrayList(plans));
             updateSelectionControls(selectedPlan);
             showFeedback("", true);
+            return true;
         } catch (IllegalStateException exception) {
             plansTable.setItems(FXCollections.observableArrayList());
             showFeedback(exception.getMessage(), false);
@@ -162,6 +169,8 @@ public class PlansController {
             showFeedback("No fue posible consultar el gimnasio actual o sus planes. "
                     + "Verifica la conexión y la migración multitenant en PostgreSQL.", false);
         }
+
+        return false;
     }
 
     private void selectPlan(Plan plan) {
