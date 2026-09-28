@@ -20,6 +20,7 @@ import gt.edu.gimnasio.model.Plan;
 import gt.edu.gimnasio.repository.MemberRepository;
 import gt.edu.gimnasio.repository.MembershipRepository;
 import gt.edu.gimnasio.repository.PlanRepository;
+import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.MembershipService;
 import gt.edu.gimnasio.service.MembershipValidationException;
 
@@ -30,8 +31,16 @@ public class MembershipsController {
 
     private final MembershipRepository membershipRepository = new MembershipRepository();
     private final MemberRepository memberRepository = new MemberRepository();
-    private final PlanRepository planRepository = new PlanRepository();
+    private final PlanRepository planRepository;
     private final MembershipService membershipService = new MembershipService(membershipRepository);
+
+    public MembershipsController() {
+        this(new GymContext());
+    }
+
+    public MembershipsController(GymContext gymContext) {
+        planRepository = new PlanRepository(gymContext);
+    }
 
     @FXML
     private ComboBox<Member> memberComboBox;
@@ -106,8 +115,8 @@ public class MembershipsController {
         startDatePicker.setValue(LocalDate.now());
         planComboBox.valueProperty().addListener((observable, oldPlan, newPlan) -> updateEndDate());
         startDatePicker.valueProperty().addListener((observable, oldDate, newDate) -> updateEndDate());
-        loadFormOptions();
         loadMemberships();
+        loadFormOptions();
     }
 
     @FXML
@@ -143,7 +152,13 @@ public class MembershipsController {
         try {
             memberComboBox.setItems(FXCollections.observableArrayList(memberRepository.findAll()));
             planComboBox.setItems(FXCollections.observableArrayList(planRepository.findActive()));
-        } catch (SQLException | IllegalStateException exception) {
+        } catch (IllegalStateException exception) {
+            memberComboBox.getItems().clear();
+            planComboBox.getItems().clear();
+            showFeedback(exception.getMessage(), false);
+        } catch (SQLException exception) {
+            memberComboBox.getItems().clear();
+            planComboBox.getItems().clear();
             showFeedback("No fue posible cargar miembros y planes activos.", false);
         }
     }
