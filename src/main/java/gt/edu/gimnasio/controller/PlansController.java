@@ -16,15 +16,26 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import gt.edu.gimnasio.model.Plan;
 import gt.edu.gimnasio.repository.PlanRepository;
+import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.PlanService;
 import gt.edu.gimnasio.service.PlanValidationException;
 
 /** Controla la consulta y el registro de planes desde la vista FXML. */
 public class PlansController {
 
-    private final PlanRepository planRepository = new PlanRepository();
-    private final PlanService planService = new PlanService(planRepository);
+    private final PlanRepository planRepository;
+    private final PlanService planService;
     private Plan selectedPlan;
+    private boolean plansLoaded;
+
+    public PlansController() {
+        this(new GymContext());
+    }
+
+    public PlansController(GymContext gymContext) {
+        planRepository = new PlanRepository(gymContext);
+        planService = new PlanService(planRepository);
+    }
 
     @FXML
     private TextField nameField;
@@ -49,6 +60,9 @@ public class PlansController {
 
     @FXML
     private Label feedbackLabel;
+
+    @FXML
+    private Button saveButton;
 
     @FXML
     private Button updateButton;
@@ -131,13 +145,22 @@ public class PlansController {
     }
 
     private void loadPlans() {
+        plansLoaded = false;
+        updateSelectionControls(null);
+
         try {
             List<Plan> plans = planRepository.findAll();
+            plansLoaded = true;
             plansTable.setItems(FXCollections.observableArrayList(plans));
+            updateSelectionControls(selectedPlan);
             showFeedback("", true);
-        } catch (SQLException | IllegalStateException exception) {
+        } catch (IllegalStateException exception) {
             plansTable.setItems(FXCollections.observableArrayList());
-            showFeedback("No fue posible cargar los planes. Configura la conexión a PostgreSQL.", false);
+            showFeedback(exception.getMessage(), false);
+        } catch (SQLException exception) {
+            plansTable.setItems(FXCollections.observableArrayList());
+            showFeedback("No fue posible consultar el gimnasio actual o sus planes. "
+                    + "Verifica la conexión y la migración multitenant en PostgreSQL.", false);
         }
     }
 
@@ -171,7 +194,8 @@ public class PlansController {
     }
 
     private void updateSelectionControls(Plan plan) {
-        boolean hasSelection = plan != null;
+        saveButton.setDisable(!plansLoaded);
+        boolean hasSelection = plansLoaded && plan != null;
         updateButton.setDisable(!hasSelection);
         activateButton.setDisable(!hasSelection || plan.isActive());
         deactivateButton.setDisable(!hasSelection || !plan.isActive());

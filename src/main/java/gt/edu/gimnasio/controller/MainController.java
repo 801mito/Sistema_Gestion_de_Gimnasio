@@ -8,9 +8,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
+import gt.edu.gimnasio.service.GymContext;
 
 /** Controla la navegación de los módulos principales de la aplicación. */
 public class MainController {
+
+    private final GymContext gymContext = new GymContext();
 
     @FXML
     private VBox contentArea;
@@ -69,6 +72,7 @@ public class MainController {
         try {
             FXMLLoader loader = new FXMLLoader(
                     MainController.class.getResource("/gt/edu/gimnasio/view/plans-view.fxml"));
+            loader.setControllerFactory(controllerType -> new PlansController(gymContext));
             VBox plansView = loader.load();
             contentArea.getChildren().clear();
             contentArea.getChildren().add(plansView);
@@ -85,6 +89,7 @@ public class MainController {
         try {
             FXMLLoader loader = new FXMLLoader(
                     MainController.class.getResource("/gt/edu/gimnasio/view/memberships-view.fxml"));
+            loader.setControllerFactory(controllerType -> new MembershipsController(gymContext));
             VBox membershipsView = loader.load();
             contentArea.getChildren().clear();
             contentArea.getChildren().add(membershipsView);

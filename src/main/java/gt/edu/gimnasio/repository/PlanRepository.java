@@ -6,9 +6,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import gt.edu.gimnasio.config.DatabaseConnection;
 import gt.edu.gimnasio.model.Plan;
+import gt.edu.gimnasio.service.GymContext;
 
 /** Realiza operaciones JDBC sobre los planes de membresía. */
 public class PlanRepository {
@@ -16,6 +18,7 @@ public class PlanRepository {
     private static final String FIND_ALL_SQL = """
             SELECT plan_id, nombre, duracion_dias, plan_activo, plan_creado_en
             FROM plan
+            WHERE gimnasio_id = ?
             ORDER BY nombre
             """;
 
@@ -36,7 +39,8 @@ public class PlanRepository {
     private static final String FIND_ACTIVE_SQL = """
             SELECT plan_id, nombre, duracion_dias, plan_activo, plan_creado_en
             FROM plan
-            WHERE plan_activo = TRUE
+            WHERE gimnasio_id = ?
+              AND plan_activo = TRUE
             ORDER BY nombre
             """;
 
@@ -62,37 +66,44 @@ public class PlanRepository {
             WHERE plan_id = ?
             """;
 
+    private final GymContext gymContext;
+
+    public PlanRepository() {
+        this(new GymContext());
+    }
+
+    public PlanRepository(GymContext gymContext) {
+        this.gymContext = Objects.requireNonNull(gymContext);
+    }
+
     /**
-     * Obtiene todos los planes registrados, tanto activos como inactivos.
+     * Obtiene los planes del gimnasio actual, tanto activos como inactivos.
      *
      * @return lista de planes ordenada alfabéticamente por nombre.
      * @throws SQLException si ocurre un problema de conexión o consulta.
      */
     public List<Plan> findAll() throws SQLException {
-        List<Plan> plans = new ArrayList<>();
-
-        try (Connection connection = DatabaseConnection.openConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL);
-             ResultSet resultSet = statement.executeQuery()) {
-
-            while (resultSet.next()) {
-                plans.add(mapPlan(resultSet));
-            }
-        }
-
-        return plans;
+        return findPlans(FIND_ALL_SQL);
     }
 
-    /** Obtiene sólo los planes que pueden asignarse a una membresía nueva. */
+    /** Obtiene los planes activos que pertenecen al gimnasio actual. */
     public List<Plan> findActive() throws SQLException {
+        return findPlans(FIND_ACTIVE_SQL);
+    }
+
+    private List<Plan> findPlans(String sql) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
         List<Plan> plans = new ArrayList<>();
 
         try (Connection connection = DatabaseConnection.openConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_ACTIVE_SQL);
-             ResultSet resultSet = statement.executeQuery()) {
+             PreparedStatement statement = connection.prepareStatement(sql)) {
 
-            while (resultSet.next()) {
-                plans.add(mapPlan(resultSet));
+            statement.setInt(1, gymId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    plans.add(mapPlan(resultSet));
+                }
             }
         }
 

@@ -29,7 +29,7 @@
                 <Label styleClass="field-label" text="Duración (días)" />
                 <Spinner fx:id="durationSpinner" editable="true" prefWidth="150.0" />
             </VBox>
-            <Button mnemonicParsing="false" onAction="#savePlan" styleClass="primary-button" text="Guardar plan" />
+            <Button fx:id="saveButton" mnemonicParsing="false" onAction="#savePlan" styleClass="primary-button" text="Guardar plan" />
             <Button fx:id="updateButton" disable="true" mnemonicParsing="false" onAction="#updatePlan" styleClass="secondary-button" text="Actualizar plan" />
         </HBox>
         <HBox spacing="10.0">
