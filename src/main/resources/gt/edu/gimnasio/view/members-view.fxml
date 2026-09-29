@@ -42,7 +42,7 @@
                 <Label styleClass="field-label" text="Correo" />
                 <TextField fx:id="emailField" promptText="Opcional" />
             </VBox>
-            <Button mnemonicParsing="false" onAction="#saveMember" styleClass="primary-button" text="Guardar miembro" />
+            <Button fx:id="saveButton" mnemonicParsing="false" onAction="#saveMember" styleClass="primary-button" text="Guardar miembro" />
             <Button fx:id="updateButton" disable="true" mnemonicParsing="false" onAction="#updateMember" styleClass="secondary-button" text="Actualizar miembro" />
         </HBox>
         <Button mnemonicParsing="false" onAction="#clearForm" styleClass="link-button" text="Limpiar selección" />

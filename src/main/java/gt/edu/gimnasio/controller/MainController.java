@@ -56,6 +56,7 @@ public class MainController {
         try {
             FXMLLoader loader = new FXMLLoader(
                     MainController.class.getResource("/gt/edu/gimnasio/view/members-view.fxml"));
+            loader.setControllerFactory(controllerType -> new MembersController(gymContext));
             VBox membersView = loader.load();
             contentArea.getChildren().clear();
             contentArea.getChildren().add(membersView);

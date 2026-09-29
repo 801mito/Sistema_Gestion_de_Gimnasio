@@ -24,12 +24,18 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import gt.edu.gimnasio.model.Plan;
+import gt.edu.gimnasio.model.Member;
 import gt.edu.gimnasio.model.Gym;
 import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.PlanService;
+import gt.edu.gimnasio.controller.MembersController;
+import gt.edu.gimnasio.controller.MembershipsController;
+import gt.edu.gimnasio.controller.MainController;
+import javafx.scene.control.ComboBox;
+import javafx.scene.layout.VBox;
 
 /** Carga el FXML y pulsa los botones en el hilo JavaFX, sin mostrar ventanas. */
-class PlansViewIT {
+class ScopedViewsIT {
 
     private PostgresPlanFixture fixture;
     private PlanRepository repository;
@@ -227,6 +233,160 @@ class PlansViewIT {
                 return super.findByName("Gimnasio Secundario");
             }
         }));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void memberTableAndMembershipMemberOptionsUseInjectedGymContext() throws Exception {
+        seedMembersForRead();
+        fixture.execute("""
+                INSERT INTO plan (gimnasio_id, nombre, duracion_dias)
+                VALUES (41, 'Plan principal', 30), (73, 'Plan secundario', 7)
+                """);
+        GymContext otherGym = new GymContext(new GymRepository() {
+            @Override
+            public Optional<Gym> findByName(String ignored) throws SQLException {
+                return super.findByName("Gimnasio Secundario");
+            }
+        });
+        onFxThread(() -> {
+            FXMLLoader membersLoader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/members-view.fxml"));
+            membersLoader.setControllerFactory(type -> new MembersController(otherGym));
+            membersLoader.load();
+            TableView<Member> table = (TableView<Member>) membersLoader.getNamespace().get("membersTable");
+            assertEquals(java.util.List.of("Ajeno"), table.getItems().stream().map(Member::getFirstNames).toList());
+            assertFalse(((Button) membersLoader.getNamespace().get("saveButton")).isDisabled());
+            assertTrue(((Button) membersLoader.getNamespace().get("updateButton")).isDisabled());
+            table.getSelectionModel().selectFirst();
+            assertFalse(((Button) membersLoader.getNamespace().get("updateButton")).isDisabled());
+
+            FXMLLoader membershipsLoader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/memberships-view.fxml"));
+            membershipsLoader.setControllerFactory(type -> new MembershipsController(otherGym));
+            membershipsLoader.load();
+            ComboBox<Member> members = (ComboBox<Member>) membershipsLoader.getNamespace().get("memberComboBox");
+            ComboBox<Plan> plans = (ComboBox<Plan>) membershipsLoader.getNamespace().get("planComboBox");
+            assertEquals(java.util.List.of("Ajeno"), members.getItems().stream().map(Member::getFirstNames).toList());
+            assertEquals(java.util.List.of("Plan secundario"), plans.getItems().stream().map(Plan::getName).toList());
+        });
+        fixture.assertResourcesClosed();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @SuppressWarnings("unchecked")
+    void memberViewBlocksActionsWhenGymIsMissingOrInactive(boolean inactive) throws Exception {
+        fixture.execute(inactive
+                ? "UPDATE gimnasio SET gimnasio_activo = false WHERE gimnasio_id = 41"
+                : "DELETE FROM gimnasio WHERE gimnasio_id = 41");
+        onFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/members-view.fxml"));
+            loader.load();
+            assertTrue(((TableView<Member>) loader.getNamespace().get("membersTable")).getItems().isEmpty());
+            assertTrue(((Button) loader.getNamespace().get("saveButton")).isDisabled());
+            assertTrue(((Button) loader.getNamespace().get("updateButton")).isDisabled());
+            assertTrue(((Label) loader.getNamespace().get("feedbackLabel")).getText()
+                    .contains(inactive ? "inactivo" : "No se encontró"));
+        });
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    void memberViewReportsSqlErrorAndDisablesActions() throws Exception {
+        fixture.execute("ALTER TABLE miembro RENAME COLUMN nombres TO nombres_temporales");
+        onFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/members-view.fxml"));
+            loader.load();
+            assertTrue(((Button) loader.getNamespace().get("saveButton")).isDisabled());
+            assertTrue(((Button) loader.getNamespace().get("updateButton")).isDisabled());
+            assertTrue(((Label) loader.getNamespace().get("feedbackLabel")).getText()
+                    .contains("gimnasio actual o sus miembros"));
+        });
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    void navigationSharesItsExistingContextWithMembersAndMembershipOptions() throws Exception {
+        seedMembersForRead();
+        onFxThread(() -> {
+            FXMLLoader mainLoader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/main-view.fxml"));
+            mainLoader.load();
+            MainController main = mainLoader.getController();
+            GymContext shared = (GymContext) readField(main, "gymContext");
+            VBox content = (VBox) mainLoader.getNamespace().get("contentArea");
+            ((Button) mainLoader.getNamespace().get("membersButton")).fire();
+            VBox membersView = (VBox) content.getChildren().getFirst();
+            TableView<?> membersTable = (TableView<?>) membersView.lookup("#membersTable");
+            assertNotNull(membersTable);
+            assertEquals(1, membersTable.getItems().size());
+            assertEquals(41, shared.getCurrentGymId());
+            // Una segunda carga debe reutilizar el contexto ya resuelto por la navegación.
+            fixture.execute("UPDATE gimnasio SET nombre = 'Principal temporal' WHERE gimnasio_id = 41");
+            ((Button) mainLoader.getNamespace().get("membersButton")).fire();
+            membersView = (VBox) content.getChildren().getFirst();
+            assertFalse(((Button) membersView.lookup("#saveButton")).isDisabled());
+            ((Button) mainLoader.getNamespace().get("membershipsButton")).fire();
+            VBox membershipsView = (VBox) content.getChildren().getFirst();
+            assertEquals(1, ((ComboBox<?>) membershipsView.lookup("#memberComboBox")).getItems().size());
+        });
+        fixture.assertResourcesClosed();
+    }
+
+    private void seedMembersForRead() throws SQLException {
+        fixture.execute("""
+                INSERT INTO miembro (gimnasio_id, nombres, apellidos, numero_documento)
+                VALUES (41, 'Jaime David', 'Cardona Marmol', 'DOC-100'),
+                       (73, 'Ajeno', 'Otro gimnasio', 'DOC-100')
+                """);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void existingMemberWritesStillWorkAndFailedRefreshDoesNotHideTheWarning() throws Exception {
+        fixture.close();
+        fixture = null;
+        // El flujo previo aún depende de los defaults de la migración 1.1.
+        fixture = new PostgresPlanFixture(true);
+        onFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/members-view.fxml"));
+            loader.load();
+            var controls = loader.getNamespace();
+            ((TextField) controls.get("firstNamesField")).setText("Jaime David");
+            ((TextField) controls.get("lastNamesField")).setText("Cardona Marmol");
+            ((Button) controls.get("saveButton")).fire();
+            assertTrue(((Label) controls.get("feedbackLabel")).getText().contains("registrado correctamente"));
+            TableView<Member> table = (TableView<Member>) controls.get("membersTable");
+            assertEquals(1, table.getItems().size());
+
+            table.getSelectionModel().selectFirst();
+            ((TextField) controls.get("lastNamesField")).setText("Cardona Marmol actualizado");
+            fixture.rejectMemberReads(true);
+            ((Button) controls.get("updateButton")).fire();
+            assertTrue(((Label) controls.get("feedbackLabel")).getText().contains("actualizado, pero"));
+            assertTrue(((Button) controls.get("saveButton")).isDisabled());
+            assertTrue(((Button) controls.get("updateButton")).isDisabled());
+            fixture.rejectMemberReads(false);
+
+            loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/members-view.fxml"));
+            loader.load();
+            controls = loader.getNamespace();
+            table = (TableView<Member>) controls.get("membersTable");
+            assertEquals("Cardona Marmol actualizado", table.getItems().getFirst().getLastNames());
+            ((TextField) controls.get("firstNamesField")).setText("Ana");
+            ((TextField) controls.get("lastNamesField")).setText("Prueba");
+            fixture.rejectMemberReads(true);
+            ((Button) controls.get("saveButton")).fire();
+            assertTrue(((Label) controls.get("feedbackLabel")).getText().contains("registrado, pero"));
+            assertTrue(((Button) controls.get("saveButton")).isDisabled());
+            fixture.rejectMemberReads(false);
+        });
+        assertEquals(2, new MemberRepository().findAll().size());
+        fixture.assertResourcesClosed();
+    }
+
+    private Object readField(Object instance, String name) throws ReflectiveOperationException {
+        var field = instance.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        return field.get(instance);
     }
 
     private static void onFxThread(CheckedAction action) throws Exception {

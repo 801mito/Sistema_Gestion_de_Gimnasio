@@ -6,9 +6,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import gt.edu.gimnasio.config.DatabaseConnection;
 import gt.edu.gimnasio.model.Member;
+import gt.edu.gimnasio.service.GymContext;
 
 /** Realiza operaciones JDBC sobre los miembros registrados. */
 public class MemberRepository {
@@ -17,6 +19,7 @@ public class MemberRepository {
             SELECT miembro_id, nombres, apellidos, numero_documento,
                    telefono, correo, miembro_creado_en
             FROM miembro
+            WHERE gimnasio_id = ?
             ORDER BY apellidos, nombres
             """;
 
@@ -52,16 +55,30 @@ public class MemberRepository {
                       telefono, correo, miembro_creado_en
             """;
 
-    /** Obtiene los miembros registrados, ordenados por apellidos y nombres. */
+    private final GymContext gymContext;
+
+    public MemberRepository() {
+        this(new GymContext());
+    }
+
+    public MemberRepository(GymContext gymContext) {
+        this.gymContext = Objects.requireNonNull(gymContext);
+    }
+
+    /** Obtiene sólo los miembros del gimnasio actual, ordenados por apellidos y nombres. */
     public List<Member> findAll() throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
         List<Member> members = new ArrayList<>();
 
         try (Connection connection = DatabaseConnection.openConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL);
-             ResultSet resultSet = statement.executeQuery()) {
+             PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL)) {
 
-            while (resultSet.next()) {
-                members.add(mapMember(resultSet));
+            statement.setInt(1, gymId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    members.add(mapMember(resultSet));
+                }
             }
         }
 
