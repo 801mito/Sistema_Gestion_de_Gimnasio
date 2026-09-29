@@ -49,7 +49,8 @@ public class PlanRepository {
             SELECT EXISTS (
                 SELECT 1
                 FROM plan
-                WHERE LOWER(nombre) = LOWER(?)
+                WHERE gimnasio_id = ?
+                  AND LOWER(nombre) = LOWER(?)
                   AND plan_id <> ?
             )
             """;
@@ -57,14 +58,16 @@ public class PlanRepository {
     private static final String UPDATE_SQL = """
             UPDATE plan
             SET nombre = ?, duracion_dias = ?
-            WHERE plan_id = ?
+            WHERE gimnasio_id = ?
+              AND plan_id = ?
             RETURNING plan_id, nombre, duracion_dias, plan_activo, plan_creado_en
             """;
 
     private static final String UPDATE_ACTIVE_STATUS_SQL = """
             UPDATE plan
             SET plan_activo = ?
-            WHERE plan_id = ?
+            WHERE gimnasio_id = ?
+              AND plan_id = ?
             """;
 
     private final GymContext gymContext;
@@ -149,13 +152,16 @@ public class PlanRepository {
         throw new SQLException("PostgreSQL no devolvió el plan registrado.");
     }
 
-    /** Comprueba duplicados de nombre al editar un plan existente. */
+    /** Comprueba duplicados al editar, excluyendo el plan dentro del gimnasio actual. */
     public boolean existsByNameExcludingId(String name, int id) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
+
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(EXISTS_BY_NAME_EXCLUDING_ID_SQL)) {
 
-            statement.setString(1, name);
-            statement.setInt(2, id);
+            statement.setInt(1, gymId);
+            statement.setString(2, name);
+            statement.setInt(3, id);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
@@ -164,14 +170,17 @@ public class PlanRepository {
         }
     }
 
-    /** Actualiza el nombre y duración de un plan, sin alterar su estado. */
+    /** Actualiza nombre y duración sólo si el plan pertenece al gimnasio actual. */
     public Plan update(int id, String name, int durationDays) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
+
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE_SQL)) {
 
             statement.setString(1, name);
             statement.setInt(2, durationDays);
-            statement.setInt(3, id);
+            statement.setInt(3, gymId);
+            statement.setInt(4, id);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -180,19 +189,26 @@ public class PlanRepository {
             }
         }
 
-        throw new SQLException("No se encontró el plan que se desea actualizar.");
+        throw new PlanNotFoundException();
     }
 
-    /** Activa o desactiva un plan sin eliminarlo de la base de datos. */
+    /** Activa o desactiva únicamente planes del gimnasio actual, sin eliminarlos. */
     public void updateActiveStatus(int id, boolean active) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
+
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE_ACTIVE_STATUS_SQL)) {
 
             statement.setBoolean(1, active);
-            statement.setInt(2, id);
+            statement.setInt(2, gymId);
+            statement.setInt(3, id);
 
-            if (statement.executeUpdate() != 1) {
-                throw new SQLException("No se encontró el plan cuyo estado se desea cambiar.");
+            int updatedRows = statement.executeUpdate();
+            if (updatedRows == 0) {
+                throw new PlanNotFoundException();
+            }
+            if (updatedRows != 1) {
+                throw new SQLException("El cambio de estado no afectó exactamente a un plan.");
             }
         }
     }
