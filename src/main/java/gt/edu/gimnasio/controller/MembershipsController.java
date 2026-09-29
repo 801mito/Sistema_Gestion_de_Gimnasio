@@ -30,7 +30,7 @@ public class MembershipsController {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final MembershipRepository membershipRepository = new MembershipRepository();
-    private final MemberRepository memberRepository = new MemberRepository();
+    private final MemberRepository memberRepository;
     private final PlanRepository planRepository;
     private final MembershipService membershipService = new MembershipService(membershipRepository);
 
@@ -39,6 +39,7 @@ public class MembershipsController {
     }
 
     public MembershipsController(GymContext gymContext) {
+        memberRepository = new MemberRepository(gymContext);
         planRepository = new PlanRepository(gymContext);
     }
 

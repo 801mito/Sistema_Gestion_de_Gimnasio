@@ -14,15 +14,26 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import gt.edu.gimnasio.model.Member;
 import gt.edu.gimnasio.repository.MemberRepository;
+import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.MemberService;
 import gt.edu.gimnasio.service.MemberValidationException;
 
 /** Controla la consulta de miembros desde la vista FXML. */
 public class MembersController {
 
-    private final MemberRepository memberRepository = new MemberRepository();
-    private final MemberService memberService = new MemberService(memberRepository);
+    private final MemberRepository memberRepository;
+    private final MemberService memberService;
     private Member selectedMember;
+    private boolean membersLoaded;
+
+    public MembersController() {
+        this(new GymContext());
+    }
+
+    public MembersController(GymContext gymContext) {
+        memberRepository = new MemberRepository(gymContext);
+        memberService = new MemberService(memberRepository);
+    }
 
     @FXML
     private TextField firstNamesField;
@@ -64,6 +75,9 @@ public class MembersController {
     private Label feedbackLabel;
 
     @FXML
+    private Button saveButton;
+
+    @FXML
     private Button updateButton;
 
     @FXML
@@ -78,7 +92,7 @@ public class MembersController {
         membersTable.setPlaceholder(new Label("No hay miembros registrados todavía."));
         membersTable.getSelectionModel().selectedItemProperty().addListener(
                 (observable, previousMember, currentMember) -> selectMember(currentMember));
-        updateButton.setDisable(true);
+        updateSelectionControls(null);
         loadMembers();
     }
 
@@ -89,10 +103,15 @@ public class MembersController {
                     firstNamesField.getText(), lastNamesField.getText(), documentField.getText(),
                     phoneField.getText(), emailField.getText());
             clearForm();
-            loadMembers();
-            showFeedback("Miembro \"" + member.getFirstNames() + " " + member.getLastNames()
-                    + "\" registrado correctamente.", true);
+            if (loadMembers()) {
+                showFeedback("Miembro \"" + member.getFullName() + "\" registrado correctamente.", true);
+            } else {
+                showFeedback("Miembro \"" + member.getFullName() + "\" registrado, pero no fue posible recargar la lista. "
+                        + "Vuelve a abrir Miembros para consultar los datos.", false);
+            }
         } catch (MemberValidationException exception) {
+            showFeedback(exception.getMessage(), false);
+        } catch (IllegalStateException exception) {
             showFeedback(exception.getMessage(), false);
         } catch (SQLException exception) {
             showFeedback("No fue posible registrar el miembro. Verifica la conexión a PostgreSQL.", false);
@@ -110,26 +129,44 @@ public class MembersController {
             Member updatedMember = memberService.updateMember(
                     selectedMember.getId(), firstNamesField.getText(), lastNamesField.getText(),
                     documentField.getText(), phoneField.getText(), emailField.getText());
-            loadMembers();
+            boolean refreshed = loadMembers();
             clearForm();
-            showFeedback("Miembro \"" + updatedMember.getFirstNames() + " " + updatedMember.getLastNames()
-                    + "\" actualizado correctamente.", true);
+            if (refreshed) {
+                showFeedback("Miembro \"" + updatedMember.getFullName() + "\" actualizado correctamente.", true);
+            } else {
+                showFeedback("Miembro \"" + updatedMember.getFullName() + "\" actualizado, pero no fue posible recargar la lista. "
+                        + "Vuelve a abrir Miembros para consultar los datos.", false);
+            }
         } catch (MemberValidationException exception) {
+            showFeedback(exception.getMessage(), false);
+        } catch (IllegalStateException exception) {
             showFeedback(exception.getMessage(), false);
         } catch (SQLException exception) {
             showFeedback("No fue posible actualizar el miembro. Verifica la conexión a PostgreSQL.", false);
         }
     }
 
-    private void loadMembers() {
+    private boolean loadMembers() {
+        membersLoaded = false;
+        updateSelectionControls(null);
+
         try {
             List<Member> members = memberRepository.findAll();
+            membersLoaded = true;
             membersTable.setItems(FXCollections.observableArrayList(members));
+            updateSelectionControls(selectedMember);
             showFeedback("", true);
-        } catch (SQLException | IllegalStateException exception) {
+            return true;
+        } catch (IllegalStateException exception) {
             membersTable.setItems(FXCollections.observableArrayList());
-            showFeedback("No fue posible cargar los miembros. Configura la conexión a PostgreSQL.", false);
+            showFeedback(exception.getMessage(), false);
+        } catch (SQLException exception) {
+            membersTable.setItems(FXCollections.observableArrayList());
+            showFeedback("No fue posible consultar el gimnasio actual o sus miembros. "
+                    + "Verifica la conexión y la migración multitenant en PostgreSQL.", false);
         }
+
+        return false;
     }
 
     @FXML
@@ -141,12 +178,12 @@ public class MembersController {
         phoneField.clear();
         emailField.clear();
         selectedMember = null;
-        updateButton.setDisable(true);
+        updateSelectionControls(null);
     }
 
     private void selectMember(Member member) {
         selectedMember = member;
-        updateButton.setDisable(member == null);
+        updateSelectionControls(member);
 
         if (member != null) {
             firstNamesField.setText(member.getFirstNames());
@@ -155,6 +192,11 @@ public class MembersController {
             phoneField.setText(valueOrEmpty(member.getPhone()));
             emailField.setText(valueOrEmpty(member.getEmail()));
         }
+    }
+
+    private void updateSelectionControls(Member member) {
+        saveButton.setDisable(!membersLoaded);
+        updateButton.setDisable(!membersLoaded || member == null);
     }
 
     private String valueOrEmpty(String value) {

@@ -104,8 +104,10 @@ $testCredential = $null
   sí se completa pero falla la recarga. Para este último escenario únicamente se
   inyecta el fallo de lectura; las escrituras siguen ejecutándose en PostgreSQL.
 
-Resultados esperados: 12 pruebas unitarias y 18 pruebas de integración, sin
-fallos, errores ni pruebas omitidas; al final, `BUILD SUCCESS`.
+Resultado esperado: ningún fallo, error ni prueba omitida y, al final,
+`BUILD SUCCESS`. Al cerrar la #44 eran 12 pruebas unitarias y 18 de integración.
+El perfil también ejecuta ahora las pruebas añadidas durante la #45; consultar
+[el avance de Miembros](avance-miembros-multitenant.md) para su cobertura parcial.
 
 Los reportes quedan en `target/surefire-reports` y `target/failsafe-reports`.
 `target` está ignorado por Git.

@@ -35,6 +35,7 @@ final class PostgresPlanFixture implements AutoCloseable {
     private boolean schemaCreated;
     private boolean registered;
     private boolean rejectPlanReads;
+    private boolean rejectMemberReads;
 
     PostgresPlanFixture(boolean migrateLegacyModel) throws SQLException, IOException {
         if (!databaseUrl.startsWith("jdbc:postgresql:")) {
@@ -101,6 +102,10 @@ final class PostgresPlanFixture implements AutoCloseable {
         rejectPlanReads = reject;
     }
 
+    void rejectMemberReads(boolean reject) {
+        rejectMemberReads = reject;
+    }
+
     void assertResourcesClosed() {
         for (TrackedResource resource : resources) {
             assertTrue(resource.explicitlyClosed, "No se llamó close() sobre " + resource.kind);
@@ -144,6 +149,10 @@ final class PostgresPlanFixture implements AutoCloseable {
                 if (rejectPlanReads && method.getName().equals("prepareStatement")
                         && args[0] instanceof String sql && sql.stripLeading().startsWith("SELECT plan_id")) {
                     throw new SQLException("Fallo de recarga inyectado por la prueba.");
+                }
+                if (rejectMemberReads && method.getName().equals("prepareStatement")
+                        && args[0] instanceof String sql && sql.stripLeading().startsWith("SELECT miembro_id")) {
+                    throw new SQLException("Fallo de recarga de miembros inyectado por la prueba.");
                 }
                 Object result = method.invoke(delegate, args);
                 if (method.getName().equals("close")) {

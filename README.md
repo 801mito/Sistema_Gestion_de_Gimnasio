@@ -76,6 +76,10 @@ pendientes miembros, membresías y accesos. No hay selector de gimnasio ni inici
 de sesión. No utilizar un segundo gimnasio con datos reales hasta completar esas
 partes.
 
+Primera tanda de la #45: la tabla de Miembros y el selector de miembros en
+Membresías ya consultan por gimnasio. El aislamiento del registro, la edición y
+los documentos duplicados sigue pendiente. Ver [el avance de Miembros](docs/avance-miembros-multitenant.md).
+
 ## Pruebas de Planes
 
 Las pruebas unitarias no requieren PostgreSQL ni credenciales:
