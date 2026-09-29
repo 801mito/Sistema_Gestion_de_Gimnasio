@@ -49,7 +49,7 @@ PowerShell**:
 ```powershell
 $env:DB_URL = "jdbc:postgresql://localhost:5432/sistema_gimnasio"
 $env:DB_USER = "postgres"
-$env:DB_PASSWORD = "tu_contraseña"
+$env:DB_PASSWORD = "CONTRASEÑA"
 ```
 
 Para validar que existe conexión y que PostgreSQL responde, ejecuta:
