@@ -71,15 +71,17 @@ de PostgreSQL por su nombre; no se supone que su ID sea 1.
 Los nombres duplicados se validan dentro de ese gimnasio. Dos gimnasios pueden
 tener un plan con el mismo nombre sin compartir sus registros.
 
-Esto **no significa que toda la aplicación ya esté aislada**: todavía están
-pendientes miembros, membresías y accesos. No hay selector de gimnasio ni inicio
-de sesión. No utilizar un segundo gimnasio con datos reales hasta completar esas
-partes.
+Esto **no significa que toda la aplicación ya esté aislada**: falta completar la
+verificación de Miembros y aislar membresías y accesos. No hay selector de
+gimnasio ni inicio de sesión. No utilizar un segundo gimnasio con datos reales
+hasta completar esas partes.
 
 Avance de la #45: la tabla de Miembros y el selector de miembros en Membresías
 consultan por gimnasio. El registro envía `gimnasio_id` explícitamente y comprueba
-documentos duplicados sólo dentro del gimnasio actual. La edición y su validación
-de documentos siguen pendientes de aislamiento. Ver [el avance de Miembros](docs/avance-miembros-multitenant.md).
+documentos duplicados sólo dentro del gimnasio actual. La edición también filtra
+por gimnasio e ID, y excluye al propio miembro al comprobar documentos duplicados.
+Queda la verificación final de compatibilidad antes de cerrar la issue.
+Ver [el avance de Miembros](docs/avance-miembros-multitenant.md).
 
 ## Pruebas de Planes
 

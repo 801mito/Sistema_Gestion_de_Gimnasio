@@ -10,6 +10,14 @@
   del valor predeterminado de la migración.
 - Al registrar, `existsByDocument()` busca sólo dentro del gimnasio actual.
   Permite repetir un documento en otro gimnasio y varios miembros sin documento.
+- Al editar, `existsByDocumentExcludingId()` filtra por gimnasio y excluye al
+  propio miembro: conservar su documento no es un duplicado.
+- `MemberRepository.update()` exige tanto `gimnasio_id` como el ID del miembro.
+  Conserva el gimnasio y la fecha de creación; no modifica registros ajenos.
+- Si el ID es ajeno o ya no existe, devuelve `MemberNotFoundException` con un
+  mensaje genérico de miembro no disponible en el gimnasio actual. La vista
+  recarga la tabla y limpia la selección, sin anunciar un éxito ni confundirlo
+  con un problema de conexión. Si falla la recarga, los botones quedan bloqueados.
 - Los documentos conservan la comparación exacta del modelo existente: se
   eliminan espacios exteriores, pero no se cambia el criterio de mayúsculas.
 - Si el gimnasio no existe, está inactivo o falla la consulta, Miembros muestra
@@ -21,18 +29,17 @@ No hay un selector nuevo de gimnasio ni cambios de diseño. Si todos los miembro
 actuales pertenecen a Gimnasio Principal, visualmente seguirá apareciendo la
 misma lista. La diferencia es que no se muestran los de otro gimnasio.
 
-## Pendiente para las siguientes tandas
+## Pendiente para la tanda final
 
-- Limitar documentos duplicados al gimnasio actual al editar.
-- Restringir la edición por `gimnasio_id` e ID de miembro.
-- Completar las pruebas de edición y de compatibilidad con miembros existentes
-  antes de la migración.
+- Verificar la compatibilidad con miembros que existían antes de la migración:
+  conservación de datos y relaciones, visibilidad, registro y edición posteriores.
+- Consolidar la revisión de recursos JDBC y las pruebas de todos los flujos.
+- Completar la documentación y la comprobación visual final de la issue.
 
-Los SQL de edición y comprobación de documentos al editar **todavía no están
-aislados**. El filtrado de la tabla no sustituye la protección de esas consultas.
-Con estas dos tandas se pueden marcar “Filtrar la lista de miembros por
-`gimnasio_id`” e “Incluir `gimnasio_id` al registrar un miembro”. Las tareas que
-incluyen edición deben seguir pendientes. No cerrar la #45 con este avance.
+Con estas tres tandas quedan implementados el filtrado, el registro, la edición
+por gimnasio y la comprobación de documentos duplicados al registrar/editar.
+También se prueban la separación de listas y el rechazo de IDs ajenos o
+inexistentes. La #45 sigue abierta hasta terminar las verificaciones finales.
 
 El historial y la asignación de membresías, y los códigos/accesos, quedan fuera
 de esta tanda. No utilizar varios gimnasios con datos reales todavía.
@@ -57,12 +64,18 @@ ausente/inactivo, errores SQL, resultados vacíos de `RETURNING` y cierre de
 recursos JDBC. `ScopedViewsIT` registra mediante el botón Guardar con un contexto
 secundario inyectado y comprueba el mensaje de documento duplicado.
 
-No se presenta la edición como aislada ni probada para varios gimnasios.
+La tercera tanda añade `MemberEditIT`: edición con gimnasio e ID, conservación
+de gimnasio/fecha de creación, documento propio sin falso duplicado, documentos
+de otros gimnasios, eliminación de campos opcionales y rechazo de IDs ajenos o
+inexistentes. Comprueba gimnasio ausente/inactivo, errores SQL, unicidad de
+PostgreSQL, `RETURNING` vacío y cierre de recursos. Amplía `MemberServiceTest` y
+`ScopedViewsIT` para el botón Actualizar, documentos duplicados y selecciones
+ajenas, obsoletas o eliminadas, incluso si falla la recarga.
 
-Verificado el 28 de septiembre de 2026 con PostgreSQL 16 temporal: 17 pruebas
-unitarias y 40 de integración aprobadas, sin errores, fallos ni omisiones.
+Verificado el 28 de septiembre de 2026 con PostgreSQL 16 temporal: 21 pruebas
+unitarias y 53 de integración aprobadas, sin errores, fallos ni omisiones.
 Incluye las regresiones de Planes y el flujo previo de registro/edición de
-miembros, además de las pruebas de lectura y registro por gimnasio. No se usó
+miembros, además de las pruebas de lectura, registro y edición por gimnasio. No se usó
 la base habitual. Al finalizar no quedaron esquemas temporales de la suite y
 las tablas de control ajenas a esos esquemas conservaron sus datos.
 
@@ -82,6 +95,11 @@ mvn javafx:run
 5. Intentar registrar otro con el mismo documento: debe indicar que ya existe en
    el gimnasio actual, sin agregar otra fila. Con documento vacío se permiten
    varios miembros, como antes.
+6. Seleccionar un miembro de prueba, cambiar sus datos y actualizar manteniendo
+   su documento: debe guardar, refrescar la tabla y limpiar la selección.
+7. Intentar cambiar su documento por el de otro miembro del mismo gimnasio:
+   debe mostrar el error sin alterar los datos guardados. También se pueden
+   vaciar los campos opcionales al editar.
 
 Estos pasos registran datos normalmente; no tienen rollback automático. La
 apariencia del formulario y los ejemplos Jaime David / Cardona Marmol no cambian.
