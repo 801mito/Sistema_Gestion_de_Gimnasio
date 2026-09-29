@@ -15,6 +15,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import gt.edu.gimnasio.model.Plan;
+import gt.edu.gimnasio.repository.PlanNotFoundException;
 import gt.edu.gimnasio.repository.PlanRepository;
 import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.PlanService;
@@ -121,10 +122,19 @@ public class PlansController {
         try {
             Plan updatedPlan = planService.updatePlan(
                     selectedPlan.getId(), nameField.getText(), durationSpinner.getValue());
-            loadPlans();
+            boolean refreshed = loadPlans();
             clearForm();
-            showFeedback("Plan \"" + updatedPlan.getName() + "\" actualizado correctamente.", true);
+            if (refreshed) {
+                showFeedback("Plan \"" + updatedPlan.getName() + "\" actualizado correctamente.", true);
+            } else {
+                showFeedback("Plan \"" + updatedPlan.getName() + "\" actualizado, pero no fue posible recargar la lista. "
+                        + "Vuelve a abrir Planes para consultar los datos.", false);
+            }
         } catch (PlanValidationException exception) {
+            showFeedback(exception.getMessage(), false);
+        } catch (PlanNotFoundException exception) {
+            showUnavailablePlan(exception);
+        } catch (IllegalStateException exception) {
             showFeedback(exception.getMessage(), false);
         } catch (SQLException exception) {
             showFeedback("No fue posible actualizar el plan. Verifica la conexión a PostgreSQL.", false);
@@ -194,12 +204,27 @@ public class PlansController {
             planService.changeActiveStatus(selectedPlan.getId(), active);
             String action = active ? "activado" : "desactivado";
             String planName = selectedPlan.getName();
-            loadPlans();
+            boolean refreshed = loadPlans();
             clearForm();
-            showFeedback("Plan \"" + planName + "\" " + action + " correctamente.", true);
+            if (refreshed) {
+                showFeedback("Plan \"" + planName + "\" " + action + " correctamente.", true);
+            } else {
+                showFeedback("Plan \"" + planName + "\" " + action + ", pero no fue posible recargar la lista. "
+                        + "Vuelve a abrir Planes para consultar los datos.", false);
+            }
+        } catch (PlanNotFoundException exception) {
+            showUnavailablePlan(exception);
+        } catch (IllegalStateException exception) {
+            showFeedback(exception.getMessage(), false);
         } catch (SQLException exception) {
             showFeedback("No fue posible cambiar el estado del plan.", false);
         }
+    }
+
+    private void showUnavailablePlan(PlanNotFoundException exception) {
+        loadPlans();
+        clearForm();
+        showFeedback(exception.getMessage(), false);
     }
 
     private void updateSelectionControls(Plan plan) {

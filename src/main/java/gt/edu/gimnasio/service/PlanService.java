@@ -42,7 +42,7 @@ public class PlanService {
         String normalizedName = validatePlanData(name, durationDays);
 
         if (planRepository.existsByNameExcludingId(normalizedName, id)) {
-            throw new PlanValidationException("Ya existe otro plan con ese nombre.");
+            throw new PlanValidationException("Ya existe otro plan con ese nombre en el gimnasio actual.");
         }
 
         return planRepository.update(id, normalizedName, durationDays);
