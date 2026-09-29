@@ -43,7 +43,8 @@ public class MemberRepository {
             SELECT EXISTS (
                 SELECT 1
                 FROM miembro
-                WHERE numero_documento = ?
+                WHERE gimnasio_id = ?
+                  AND numero_documento = ?
                   AND miembro_id <> ?
             )
             """;
@@ -51,7 +52,8 @@ public class MemberRepository {
     private static final String UPDATE_SQL = """
             UPDATE miembro
             SET nombres = ?, apellidos = ?, numero_documento = ?, telefono = ?, correo = ?
-            WHERE miembro_id = ?
+            WHERE gimnasio_id = ?
+              AND miembro_id = ?
             RETURNING miembro_id, nombres, apellidos, numero_documento,
                       telefono, correo, miembro_creado_en
             """;
@@ -128,13 +130,16 @@ public class MemberRepository {
         throw new SQLException("PostgreSQL no devolvió el miembro registrado.");
     }
 
-    /** Comprueba documentos duplicados al editar, excluyendo al miembro actual. */
+    /** Comprueba duplicados al editar dentro del gimnasio actual, excluyendo el propio ID. */
     public boolean existsByDocumentExcludingId(String documentNumber, int id) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
+
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(EXISTS_BY_DOCUMENT_EXCLUDING_ID_SQL)) {
 
-            statement.setString(1, documentNumber);
-            statement.setInt(2, id);
+            statement.setInt(1, gymId);
+            statement.setString(2, documentNumber);
+            statement.setInt(3, id);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
@@ -143,9 +148,11 @@ public class MemberRepository {
         }
     }
 
-    /** Actualiza los datos básicos de un miembro existente. */
+    /** Actualiza datos básicos sólo si el miembro pertenece al gimnasio actual. */
     public Member update(int id, String firstNames, String lastNames, String documentNumber,
                          String phone, String email) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
+
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE_SQL)) {
 
@@ -154,7 +161,8 @@ public class MemberRepository {
             statement.setString(3, documentNumber);
             statement.setString(4, phone);
             statement.setString(5, email);
-            statement.setInt(6, id);
+            statement.setInt(6, gymId);
+            statement.setInt(7, id);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -163,7 +171,7 @@ public class MemberRepository {
             }
         }
 
-        throw new SQLException("No se encontró el miembro que se desea actualizar.");
+        throw new MemberNotFoundException();
     }
 
     private Member mapMember(ResultSet resultSet) throws SQLException {

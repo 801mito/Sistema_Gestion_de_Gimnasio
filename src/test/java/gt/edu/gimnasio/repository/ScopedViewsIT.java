@@ -27,6 +27,7 @@ import gt.edu.gimnasio.model.Plan;
 import gt.edu.gimnasio.model.Member;
 import gt.edu.gimnasio.model.Gym;
 import gt.edu.gimnasio.service.GymContext;
+import gt.edu.gimnasio.service.MemberService;
 import gt.edu.gimnasio.service.PlanService;
 import gt.edu.gimnasio.controller.MembersController;
 import gt.edu.gimnasio.controller.MembershipsController;
@@ -430,6 +431,130 @@ class ScopedViewsIT {
         fixture.assertResourcesClosed();
     }
 
+    @Test
+    void memberEditButtonAcceptsOwnDocumentAndRejectsOnlyAnotherOwnMembersDocument() throws Exception {
+        MemberRepository members = new MemberRepository();
+        Member own = members.save("Jaime David", "Cardona Marmol", "DOC-100", null, null);
+        Member other = members.save("Luis", "Prueba", "DOC-200", null, null);
+        MemberRepository otherGym = secondaryMemberRepository();
+        Member foreign = otherGym.save("Ana", "Otro gimnasio", "DOC-100", null, null);
+        onFxThread(() -> {
+            MemberView view = loadMemberView();
+            view.table().getSelectionModel().select(view.table().getItems().stream()
+                    .filter(member -> member.getId() == own.getId()).findFirst().orElseThrow());
+            view.lastNames().setText(" Cardona Marmol editado ");
+            view.document().setText(" DOC-100 ");
+            view.update().fire();
+            assertTrue(view.feedback().getText().contains("actualizado correctamente"));
+            assertTrue(view.firstNames().getText().isEmpty());
+            assertTrue(view.update().isDisabled());
+
+            view.table().getSelectionModel().select(view.table().getItems().stream()
+                    .filter(member -> member.getId() == own.getId()).findFirst().orElseThrow());
+            view.document().setText("DOC-200");
+            view.update().fire();
+            assertTrue(view.feedback().getText().contains("otro miembro"));
+            assertTrue(view.feedback().getText().contains("gimnasio actual"));
+            assertEquals("DOC-200", view.document().getText());
+            assertEquals("DOC-100", view.table().getSelectionModel().getSelectedItem().getDocumentNumber());
+            assertEquals(2, view.table().getItems().size());
+
+            view.document().setText(" DOC-300 ");
+            view.phone().setText(" 5555-5555 ");
+            view.email().setText(" jaime@example.com ");
+            view.update().fire();
+            assertTrue(view.feedback().getText().contains("actualizado correctamente"));
+            assertTrue(view.update().isDisabled());
+            assertFalse(view.save().isDisabled());
+        });
+        Member updated = members.findAll().stream().filter(member -> member.getId() == own.getId()).findFirst().orElseThrow();
+        assertEquals("Cardona Marmol editado", updated.getLastNames());
+        assertEquals("DOC-300", updated.getDocumentNumber());
+        assertEquals("5555-5555", updated.getPhone());
+        assertEquals("jaime@example.com", updated.getEmail());
+        assertEquals("DOC-200", members.findAll().stream()
+                .filter(member -> member.getId() == other.getId()).findFirst().orElseThrow().getDocumentNumber());
+        assertEquals(foreign.getFullName(), otherGym.findAll().getFirst().getFullName());
+        assertEquals("DOC-100", otherGym.findAll().getFirst().getDocumentNumber());
+        fixture.assertResourcesClosed();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void foreignOrMissingMemberSelectionIsRejectedAndClearedEvenIfReloadFails(boolean reloadFails) throws Exception {
+        MemberRepository members = new MemberRepository();
+        Member own = members.save("Jaime David", "Cardona Marmol", "DOC-200", null, null);
+        MemberRepository otherGym = secondaryMemberRepository();
+        Member foreign = otherGym.save("Ana", "Otro gimnasio", "DOC-100", null, null);
+        onFxThread(() -> {
+            for (int id : new int[] {foreign.getId(), Integer.MAX_VALUE}) {
+                MemberView view = loadMemberView();
+                Member stale = new Member(id, "Selección", "Ajena u obsoleta", null, null, null, foreign.getCreatedAt());
+                view.table().getItems().add(stale);
+                view.table().getSelectionModel().select(stale);
+                assertFalse(view.update().isDisabled());
+                view.firstNames().setText("Intento de cambio");
+                fixture.rejectMemberReads(reloadFails);
+                try {
+                    view.update().fire();
+                    assertEquals("No se encontró el miembro en el gimnasio actual.", view.feedback().getText());
+                    assertTrue(view.firstNames().getText().isEmpty());
+                    assertTrue(view.lastNames().getText().isEmpty());
+                    assertTrue(view.document().getText().isEmpty());
+                    assertNull(view.table().getSelectionModel().getSelectedItem());
+                    assertTrue(view.update().isDisabled());
+                    assertEquals(reloadFails, view.save().isDisabled());
+                    assertEquals(reloadFails ? 0 : 1, view.table().getItems().size());
+                } finally {
+                    fixture.rejectMemberReads(false);
+                }
+            }
+        });
+        assertEquals(own.getFullName(), members.findAll().getFirst().getFullName());
+        assertEquals(foreign.getFullName(), otherGym.findAll().getFirst().getFullName());
+        assertEquals("DOC-100", otherGym.findAll().getFirst().getDocumentNumber());
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    void memberDeletedAfterSelectionShowsUnavailableInsteadOfDatabaseConnectionError() throws Exception {
+        Member own = new MemberService(new MemberRepository())
+                .createMember("Jaime David", "Cardona Marmol", "DOC-100", null, null);
+        onFxThread(() -> {
+            MemberView view = loadMemberView();
+            view.table().getSelectionModel().selectFirst();
+            fixture.execute("DELETE FROM miembro WHERE miembro_id = " + own.getId());
+            view.update().fire();
+            assertEquals("No se encontró el miembro en el gimnasio actual.", view.feedback().getText());
+            assertTrue(view.table().getItems().isEmpty());
+            assertTrue(view.update().isDisabled());
+            assertFalse(view.save().isDisabled());
+            assertTrue(view.document().getText().isEmpty());
+        });
+        fixture.assertResourcesClosed();
+    }
+
+    @SuppressWarnings("unchecked")
+    private MemberView loadMemberView() throws Exception {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/members-view.fxml"));
+        loader.load();
+        var controls = loader.getNamespace();
+        return new MemberView((TextField) controls.get("firstNamesField"), (TextField) controls.get("lastNamesField"),
+                (TextField) controls.get("documentField"), (TextField) controls.get("phoneField"),
+                (TextField) controls.get("emailField"), (TableView<Member>) controls.get("membersTable"),
+                (Label) controls.get("feedbackLabel"), (Button) controls.get("saveButton"),
+                (Button) controls.get("updateButton"));
+    }
+
+    private MemberRepository secondaryMemberRepository() {
+        return new MemberRepository(new GymContext(new GymRepository() {
+            @Override
+            public Optional<Gym> findByName(String ignored) throws SQLException {
+                return super.findByName("Gimnasio Secundario");
+            }
+        }));
+    }
+
     private Object readField(Object instance, String name) throws ReflectiveOperationException {
         var field = instance.getClass().getDeclaredField(name);
         field.setAccessible(true);
@@ -447,4 +572,7 @@ class ScopedViewsIT {
 
     private record View(TextField name, Spinner<Integer> duration, TableView<Plan> table, Label feedback,
                         Button save, Button update, Button activate, Button deactivate) { }
+
+    private record MemberView(TextField firstNames, TextField lastNames, TextField document, TextField phone,
+                              TextField email, TableView<Member> table, Label feedback, Button save, Button update) { }
 }

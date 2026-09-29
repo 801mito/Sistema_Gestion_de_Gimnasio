@@ -13,6 +13,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import gt.edu.gimnasio.model.Member;
+import gt.edu.gimnasio.repository.MemberNotFoundException;
 import gt.edu.gimnasio.repository.MemberRepository;
 import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.MemberService;
@@ -138,6 +139,10 @@ public class MembersController {
                         + "Vuelve a abrir Miembros para consultar los datos.", false);
             }
         } catch (MemberValidationException exception) {
+            showFeedback(exception.getMessage(), false);
+        } catch (MemberNotFoundException exception) {
+            loadMembers();
+            clearForm();
             showFeedback(exception.getMessage(), false);
         } catch (IllegalStateException exception) {
             showFeedback(exception.getMessage(), false);

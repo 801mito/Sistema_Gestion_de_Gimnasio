@@ -35,7 +35,7 @@ public class MemberService {
 
         if (memberData.documentNumber() != null
                 && memberRepository.existsByDocumentExcludingId(memberData.documentNumber(), id)) {
-            throw new MemberValidationException("Ya existe otro miembro con ese número de documento.");
+            throw new MemberValidationException("Ya existe otro miembro con ese número de documento en el gimnasio actual.");
         }
 
         return memberRepository.update(
