@@ -59,6 +59,20 @@ El script comprueba:
 
 La prueba también termina con `ROLLBACK`, por lo que no conserva el gimnasio ni los registros ficticios.
 
+## Pruebas de la aplicación Java sobre PostgreSQL
+
+Los scripts SQL anteriores verifican las restricciones del esquema, pero no
+ejecutan `PlanRepository`, `PlanService` ni la pantalla JavaFX.
+
+El perfil Maven `postgres-it` ejecuta esas pruebas sobre PostgreSQL real, dentro
+de esquemas temporales. Incluye consultas y escrituras aisladas, duplicados,
+compatibilidad con la migración y cierre explícito de conexiones, sentencias y
+resultados, tanto en operaciones correctas como en errores.
+
+No hay un nuevo SQL de migración que ejecutar para esta tanda. Consultar
+[la guía de pruebas de Planes](../../docs/pruebas-planes-multitenant.md)
+para configurar `TEST_DB_*` y ejecutar `mvn clean verify -Ppostgres-it`.
+
 ## Resultado de la validación
 
 El script se ejecutó correctamente en PostgreSQL 16 el 8 de septiembre de 2026. Todas las validaciones finalizaron satisfactoriamente y la transacción terminó con `ROLLBACK`.

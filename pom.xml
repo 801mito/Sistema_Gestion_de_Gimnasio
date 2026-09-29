@@ -12,6 +12,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
         <javafx.version>21</javafx.version>
+        <junit.version>5.11.4</junit.version>
+        <surefire.version>3.5.4</surefire.version>
     </properties>
 
     <dependencies>
@@ -30,10 +32,21 @@
             <artifactId>postgresql</artifactId>
             <version>42.7.13</version>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.version}</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -60,4 +73,41 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Las pruebas reales de PostgreSQL sólo se ejecutan bajo petición. -->
+        <profile>
+            <id>postgres-it</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>${surefire.version}</version>
+                        <configuration>
+                            <failIfNoTests>true</failIfNoTests>
+                            <environmentVariables>
+                                <!-- El driver de pruebas redirige al esquema temporal. -->
+                                <DB_URL>jdbc:planes-it</DB_URL>
+                                <DB_USER>pruebas</DB_USER>
+                                <DB_PASSWORD>pruebas</DB_PASSWORD>
+                            </environmentVariables>
+                            <systemPropertyVariables>
+                                <project.root>${project.basedir}</project.root>
+                                <junit.jupiter.execution.parallel.enabled>false</junit.jupiter.execution.parallel.enabled>
+                            </systemPropertyVariables>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

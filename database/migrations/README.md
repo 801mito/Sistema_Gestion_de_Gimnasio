@@ -16,3 +16,14 @@ Antes de ejecutarla:
 4. Ejecutar `database/tests/validar_modelo_multitenant.sql`.
 
 No ejecutar el modelo físico para bases nuevas sobre una base de datos que ya contiene información.
+
+## Estado del uso desde Java
+
+Planes ya utiliza el contexto del gimnasio actual, filtra sus consultas y envía
+`gimnasio_id` explícitamente al registrar. También restringe edición y cambios de
+estado al mismo gimnasio. Los valores predeterminados de la migración se
+conservan por compatibilidad con los módulos que todavía no se han adaptado.
+
+Las pruebas de aislamiento de Planes no requieren aplicar otra migración a la
+base habitual: reconstruyen los modelos 1.0/1.1 en esquemas temporales de una
+base de pruebas. Ver [la guía de pruebas](../../docs/pruebas-planes-multitenant.md).
