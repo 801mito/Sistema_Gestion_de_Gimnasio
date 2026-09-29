@@ -20,7 +20,7 @@ public class MemberService {
         MemberData memberData = validateMemberData(firstNames, lastNames, documentNumber, phone, email);
 
         if (memberData.documentNumber() != null && memberRepository.existsByDocument(memberData.documentNumber())) {
-            throw new MemberValidationException("Ya existe un miembro con ese número de documento.");
+            throw new MemberValidationException("Ya existe un miembro con ese número de documento en el gimnasio actual.");
         }
 
         return memberRepository.save(

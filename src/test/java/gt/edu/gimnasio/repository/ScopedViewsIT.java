@@ -344,7 +344,7 @@ class ScopedViewsIT {
     void existingMemberWritesStillWorkAndFailedRefreshDoesNotHideTheWarning() throws Exception {
         fixture.close();
         fixture = null;
-        // El flujo previo aún depende de los defaults de la migración 1.1.
+        // Comprueba el flujo previo sobre una instalación migrada a 1.1.
         fixture = new PostgresPlanFixture(true);
         onFxThread(() -> {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/members-view.fxml"));
@@ -380,6 +380,53 @@ class ScopedViewsIT {
             fixture.rejectMemberReads(false);
         });
         assertEquals(2, new MemberRepository().findAll().size());
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void memberRegistrationUsesInjectedGymAndRejectsOnlyItsDuplicateDocuments() throws Exception {
+        fixture.execute("""
+                INSERT INTO miembro (gimnasio_id, nombres, apellidos, numero_documento)
+                VALUES (41, 'Jaime David', 'Cardona Marmol', 'DOC-200'),
+                       (73, 'Ana', 'Secundario', 'DOC-300')
+                """);
+        GymContext otherGym = new GymContext(new GymRepository() {
+            @Override
+            public Optional<Gym> findByName(String ignored) throws SQLException {
+                return super.findByName("Gimnasio Secundario");
+            }
+        });
+        onFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/members-view.fxml"));
+            loader.setControllerFactory(type -> new MembersController(otherGym));
+            loader.load();
+            var controls = loader.getNamespace();
+            TextField firstNames = (TextField) controls.get("firstNamesField");
+            TextField lastNames = (TextField) controls.get("lastNamesField");
+            TextField document = (TextField) controls.get("documentField");
+            Button save = (Button) controls.get("saveButton");
+            Label feedback = (Label) controls.get("feedbackLabel");
+            TableView<Member> table = (TableView<Member>) controls.get("membersTable");
+
+            firstNames.setText("Jaime David");
+            lastNames.setText("Cardona Marmol");
+            document.setText(" DOC-200 ");
+            save.fire();
+            assertTrue(feedback.getText().contains("registrado correctamente"));
+            assertEquals(2, table.getItems().size());
+            assertTrue(firstNames.getText().isEmpty());
+
+            firstNames.setText("Duplicado");
+            lastNames.setText("Secundario");
+            document.setText("DOC-200");
+            save.fire();
+            assertTrue(feedback.getText().contains("gimnasio actual"));
+            assertEquals(2, table.getItems().size());
+            assertEquals("DOC-200", document.getText());
+        });
+        assertEquals(1, new MemberRepository().findAll().size());
+        assertEquals(2, new MemberRepository(otherGym).findAll().size());
         fixture.assertResourcesClosed();
     }
 
