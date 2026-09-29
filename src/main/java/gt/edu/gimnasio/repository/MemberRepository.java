@@ -27,13 +27,14 @@ public class MemberRepository {
             SELECT EXISTS (
                 SELECT 1
                 FROM miembro
-                WHERE numero_documento = ?
+                WHERE gimnasio_id = ?
+                  AND numero_documento = ?
             )
             """;
 
     private static final String SAVE_SQL = """
-            INSERT INTO miembro (nombres, apellidos, numero_documento, telefono, correo)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO miembro (gimnasio_id, nombres, apellidos, numero_documento, telefono, correo)
+            VALUES (?, ?, ?, ?, ?, ?)
             RETURNING miembro_id, nombres, apellidos, numero_documento,
                       telefono, correo, miembro_creado_en
             """;
@@ -85,12 +86,15 @@ public class MemberRepository {
         return members;
     }
 
-    /** Comprueba si ya existe un miembro con el número de documento indicado. */
+    /** Comprueba documentos duplicados dentro del gimnasio actual al registrar. */
     public boolean existsByDocument(String documentNumber) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
+
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(EXISTS_BY_DOCUMENT_SQL)) {
 
-            statement.setString(1, documentNumber);
+            statement.setInt(1, gymId);
+            statement.setString(2, documentNumber);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
@@ -99,17 +103,20 @@ public class MemberRepository {
         }
     }
 
-    /** Inserta un miembro y devuelve los datos generados por PostgreSQL. */
+    /** Inserta un miembro asociado explícitamente al gimnasio actual. */
     public Member save(String firstNames, String lastNames, String documentNumber,
                        String phone, String email) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
+
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(SAVE_SQL)) {
 
-            statement.setString(1, firstNames);
-            statement.setString(2, lastNames);
-            statement.setString(3, documentNumber);
-            statement.setString(4, phone);
-            statement.setString(5, email);
+            statement.setInt(1, gymId);
+            statement.setString(2, firstNames);
+            statement.setString(3, lastNames);
+            statement.setString(4, documentNumber);
+            statement.setString(5, phone);
+            statement.setString(6, email);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
