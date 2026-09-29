@@ -64,7 +64,7 @@ begin
    end if;
    raise notice 'OK: membresías existentes conservan relaciones del mismo gimnasio';
 
-   /* La versión actual de la aplicación todavía omite GIMNASIO_ID al insertar. */
+   /* Verifica los defaults de compatibilidad para clientes que todavía omiten GIMNASIO_ID. */
    insert into PLAN (NOMBRE, DURACION_DIAS)
    values ('__PRUEBA_PLAN_COMPATIBILIDAD__', 7)
    returning PLAN_ID, GIMNASIO_ID
