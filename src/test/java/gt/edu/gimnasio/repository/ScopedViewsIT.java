@@ -26,6 +26,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import gt.edu.gimnasio.model.Plan;
 import gt.edu.gimnasio.model.Member;
+import gt.edu.gimnasio.model.Membership;
 import gt.edu.gimnasio.model.Gym;
 import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.MemberService;
@@ -239,11 +240,17 @@ class ScopedViewsIT {
 
     @Test
     @SuppressWarnings("unchecked")
-    void memberTableAndMembershipMemberOptionsUseInjectedGymContext() throws Exception {
+    void memberTableAndMembershipHistoryAndOptionsUseInjectedGymContext() throws Exception {
         seedMembersForRead();
         fixture.execute("""
                 INSERT INTO plan (gimnasio_id, nombre, duracion_dias)
                 VALUES (41, 'Plan principal', 30), (73, 'Plan secundario', 7)
+                """);
+        fixture.execute("""
+                INSERT INTO membresia (gimnasio_id, plan_id, miembro_id, fecha_inicio, fecha_fin)
+                SELECT plan.gimnasio_id, plan.plan_id, miembro.miembro_id,
+                       DATE '2026-09-01', DATE '2026-09-30'
+                FROM plan JOIN miembro ON miembro.gimnasio_id = plan.gimnasio_id
                 """);
         GymContext otherGym = new GymContext(new GymRepository() {
             @Override
@@ -269,6 +276,17 @@ class ScopedViewsIT {
             ComboBox<Plan> plans = (ComboBox<Plan>) membershipsLoader.getNamespace().get("planComboBox");
             assertEquals(java.util.List.of("Ajeno"), members.getItems().stream().map(Member::getFirstNames).toList());
             assertEquals(java.util.List.of("Plan secundario"), plans.getItems().stream().map(Plan::getName).toList());
+            TableView<Membership> secondaryHistory =
+                    (TableView<Membership>) membershipsLoader.getNamespace().get("membershipsTable");
+            assertEquals(java.util.List.of("Ajeno Otro gimnasio"),
+                    secondaryHistory.getItems().stream().map(Membership::getMemberName).toList());
+
+            FXMLLoader primaryLoader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/memberships-view.fxml"));
+            primaryLoader.load();
+            TableView<Membership> primaryHistory =
+                    (TableView<Membership>) primaryLoader.getNamespace().get("membershipsTable");
+            assertEquals(java.util.List.of("Jaime David Cardona Marmol"),
+                    primaryHistory.getItems().stream().map(Membership::getMemberName).toList());
         });
         fixture.assertResourcesClosed();
     }
