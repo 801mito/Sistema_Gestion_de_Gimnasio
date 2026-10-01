@@ -33,7 +33,7 @@
                 <Label styleClass="field-label" text="Fecha de inicio" />
                 <DatePicker fx:id="startDatePicker" />
             </VBox>
-            <Button mnemonicParsing="false" onAction="#assignMembership" styleClass="primary-button" text="Asignar" />
+            <Button fx:id="assignButton" mnemonicParsing="false" onAction="#assignMembership" styleClass="primary-button" text="Asignar" />
         </HBox>
         <Label fx:id="endDateLabel" styleClass="card-message" text="Selecciona un plan y una fecha de inicio." />
     </VBox>

@@ -47,22 +47,38 @@ public class MembershipService {
             throw new MembershipValidationException("El plan seleccionado no está activo.");
         }
 
-        if (membershipRepository.hasActiveMembership(member.getId())) {
-            throw new MembershipValidationException("El miembro ya tiene una membresía activa.");
-        }
-
+        int gymId = membershipRepository.currentGymId();
         try (Connection connection = DatabaseConnection.openConnection()) {
             connection.setAutoCommit(false);
 
             try {
+                if (!membershipRepository.isGymActive(connection, gymId)) {
+                    throw new MembershipValidationException("El gimnasio actual ya no está disponible.");
+                }
+                if (!membershipRepository.memberExists(connection, gymId, member.getId())) {
+                    throw new MembershipValidationException("No se encontró el miembro en el gimnasio actual.");
+                }
+                int durationDays = membershipRepository.activePlanDurationDays(connection, gymId, plan.getId());
+                if (durationDays < 1) {
+                    throw new MembershipValidationException("No se encontró un plan activo en el gimnasio actual.");
+                }
+                if (membershipRepository.hasActiveMembership(connection, gymId, member.getId())) {
+                    throw new MembershipValidationException("El miembro ya tiene una membresía activa.");
+                }
+
                 int membershipId = membershipRepository.save(
-                        connection, member.getId(), plan.getId(), startDate, calculateEndDate(plan, startDate));
+                        connection, gymId, member.getId(), plan.getId(), startDate,
+                        startDate.plusDays(durationDays - 1L));
                 String accessCode = accessCodeGenerator.generateUniqueCode(connection);
                 accessCodeRepository.save(connection, membershipId, accessCode);
                 connection.commit();
                 return accessCode;
-            } catch (SQLException exception) {
-                connection.rollback();
+            } catch (SQLException | MembershipValidationException | RuntimeException exception) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackFailure) {
+                    exception.addSuppressed(rollbackFailure);
+                }
                 throw exception;
             }
         }

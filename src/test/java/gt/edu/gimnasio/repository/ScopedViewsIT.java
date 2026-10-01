@@ -361,6 +361,47 @@ class ScopedViewsIT {
 
     @Test
     @SuppressWarnings("unchecked")
+    void membershipViewAssignsOwnMemberAndRejectsInjectedForeignSelection() throws Exception {
+        seedMembersForRead();
+        fixture.execute("""
+                INSERT INTO plan (gimnasio_id, nombre, duracion_dias)
+                VALUES (41, 'Mensual', 30), (73, 'Semanal', 7)
+                """);
+        GymContext secondary = new GymContext(new GymRepository() {
+            @Override
+            public Optional<Gym> findByName(String ignored) throws SQLException {
+                return super.findByName("Gimnasio Secundario");
+            }
+        });
+        Member foreign = new MemberRepository(secondary).findAll().getFirst();
+
+        onFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/memberships-view.fxml"));
+            loader.load();
+            ComboBox<Member> members = (ComboBox<Member>) loader.getNamespace().get("memberComboBox");
+            ComboBox<Plan> plans = (ComboBox<Plan>) loader.getNamespace().get("planComboBox");
+            Button assign = (Button) loader.getNamespace().get("assignButton");
+            Label feedback = (Label) loader.getNamespace().get("feedbackLabel");
+            TableView<Membership> history = (TableView<Membership>) loader.getNamespace().get("membershipsTable");
+
+            Plan ownPlan = plans.getItems().getFirst();
+            members.setValue(members.getItems().getFirst());
+            plans.setValue(ownPlan);
+            assign.fire();
+            assertTrue(feedback.getText().contains("Código generado"));
+            assertEquals(1, history.getItems().size());
+
+            members.setValue(foreign);
+            plans.setValue(ownPlan);
+            assign.fire();
+            assertTrue(feedback.getText().contains("miembro en el gimnasio actual"));
+            assertEquals(1, history.getItems().size());
+        });
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void existingMemberWritesStillWorkAndFailedRefreshDoesNotHideTheWarning() throws Exception {
         fixture.close();
         fixture = null;
