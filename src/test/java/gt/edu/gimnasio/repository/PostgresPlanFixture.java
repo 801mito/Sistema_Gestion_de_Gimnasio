@@ -25,6 +25,22 @@ import java.util.logging.Logger;
 final class PostgresPlanFixture implements AutoCloseable {
 
     static final String TEST_JDBC_URL = "jdbc:planes-it";
+    static final String LEGACY_MEMBER_SETUP_SQL = """
+            INSERT INTO miembro (miembro_id, nombres, apellidos, numero_documento,
+                                 telefono, correo, miembro_creado_en)
+            VALUES (101, 'Jaime David', 'Cardona Marmol', 'DOC-LEGACY',
+                    '5555-5555', 'jaime@example.com', TIMESTAMP '2026-08-15 10:20:30'),
+                   (102, 'Ana', 'Prueba', NULL,
+                    NULL, NULL, TIMESTAMP '2026-08-16 11:21:31');
+            INSERT INTO membresia (membresia_id, plan_id, miembro_id, estado,
+                                   fecha_inicio, fecha_fin, membresia_creada_en)
+            SELECT 301, plan_id, 101, 'ACTIVA', DATE '2026-08-01', DATE '2026-08-30',
+                   TIMESTAMP '2026-08-01 09:00:00'
+            FROM plan WHERE nombre = 'Plan previo';
+            INSERT INTO codigo_acceso (codigo_acceso_id, membresia_id, codigo,
+                                       codigo_activo, codigo_creado_en)
+            VALUES (401, 301, 'GYM-LEGACY101', TRUE, TIMESTAMP '2026-08-01 09:00:01');
+            """;
 
     private final String databaseUrl = requiredEnvironment("TEST_DB_URL");
     private final String databaseUser = requiredEnvironment("TEST_DB_USER");
@@ -36,8 +52,17 @@ final class PostgresPlanFixture implements AutoCloseable {
     private boolean registered;
     private boolean rejectPlanReads;
     private boolean rejectMemberReads;
+    private boolean rejectMemberMapping;
 
     PostgresPlanFixture(boolean migrateLegacyModel) throws SQLException, IOException {
+        this(migrateLegacyModel, null);
+    }
+
+    /** Permite sembrar miembros ficticios antes de migrar el modelo 1.0. */
+    PostgresPlanFixture(boolean migrateLegacyModel, String legacySetupSql) throws SQLException, IOException {
+        if (legacySetupSql != null && !migrateLegacyModel) {
+            throw new IllegalArgumentException("Los datos previos requieren el modelo legado.");
+        }
         if (!databaseUrl.startsWith("jdbc:postgresql:")) {
             throw new IllegalStateException("TEST_DB_URL debe ser una URL JDBC de PostgreSQL.");
         }
@@ -53,6 +78,9 @@ final class PostgresPlanFixture implements AutoCloseable {
                 if (migrateLegacyModel) {
                     statement.execute(readProjectFile("docs/diagramas/der/Sistema_Gimnasio_Modelo_Fisico_v1.0.sql"));
                     statement.execute("INSERT INTO plan (nombre, duracion_dias) VALUES ('Plan previo', 30)");
+                    if (legacySetupSql != null) {
+                        statement.execute(legacySetupSql);
+                    }
                     statement.execute(readProjectFile("database/migrations/V1_1__preparar_modelo_multitenant.sql"));
                 } else {
                     statement.execute(readProjectFile("docs/diagramas/der/Sistema_Gimnasio_Modelo_Fisico_v1.1_multitenant.sql"));
@@ -106,6 +134,11 @@ final class PostgresPlanFixture implements AutoCloseable {
         rejectMemberReads = reject;
     }
 
+    /** Falla después de obtener un ResultSet de miembro para verificar su cierre. */
+    void rejectMemberMapping(boolean reject) {
+        rejectMemberMapping = reject;
+    }
+
     void assertResourcesClosed() {
         for (TrackedResource resource : resources) {
             assertTrue(resource.explicitlyClosed, "No se llamó close() sobre " + resource.kind);
@@ -153,6 +186,11 @@ final class PostgresPlanFixture implements AutoCloseable {
                 if (rejectMemberReads && method.getName().equals("prepareStatement")
                         && args[0] instanceof String sql && sql.stripLeading().startsWith("SELECT miembro_id")) {
                     throw new SQLException("Fallo de recarga de miembros inyectado por la prueba.");
+                }
+                if (rejectMemberMapping && type == ResultSet.class
+                        && method.getName().equals("getTimestamp")
+                        && args[0] instanceof String column && column.equals("miembro_creado_en")) {
+                    throw new SQLException("Fallo de lectura de miembro inyectado por la prueba.");
                 }
                 Object result = method.invoke(delegate, args);
                 if (method.getName().equals("close")) {
