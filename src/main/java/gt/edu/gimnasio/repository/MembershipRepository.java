@@ -7,9 +7,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import gt.edu.gimnasio.config.DatabaseConnection;
 import gt.edu.gimnasio.model.Membership;
+import gt.edu.gimnasio.service.GymContext;
 
 /** Realiza consultas de lectura sobre las membresías y su historial. */
 public class MembershipRepository {
@@ -25,6 +27,7 @@ public class MembershipRepository {
             FROM membresia
             INNER JOIN miembro ON miembro.miembro_id = membresia.miembro_id
             INNER JOIN plan ON plan.plan_id = membresia.plan_id
+            WHERE membresia.gimnasio_id = ?
             ORDER BY membresia.fecha_inicio DESC, membresia.membresia_id DESC
             """;
 
@@ -42,23 +45,37 @@ public class MembershipRepository {
             VALUES (?, ?, 'ACTIVA', ?, ?)
             """;
 
-    /** Obtiene el historial de membresías junto con su miembro y plan asociados. */
+    private final GymContext gymContext;
+
+    public MembershipRepository() {
+        this(new GymContext());
+    }
+
+    public MembershipRepository(GymContext gymContext) {
+        this.gymContext = Objects.requireNonNull(gymContext);
+    }
+
+    /** Obtiene sólo el historial del gimnasio actual con su miembro y plan asociados. */
     public List<Membership> findAll() throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
         List<Membership> memberships = new ArrayList<>();
 
         try (Connection connection = DatabaseConnection.openConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL);
-             ResultSet resultSet = statement.executeQuery()) {
+             PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL)) {
 
-            while (resultSet.next()) {
-                memberships.add(new Membership(
-                        resultSet.getInt("membresia_id"),
-                        resultSet.getInt("miembro_id"),
-                        resultSet.getString("miembro_nombre"),
-                        resultSet.getString("plan_nombre"),
-                        resultSet.getString("estado"),
-                        resultSet.getObject("fecha_inicio", java.time.LocalDate.class),
-                        resultSet.getObject("fecha_fin", java.time.LocalDate.class)));
+            statement.setInt(1, gymId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    memberships.add(new Membership(
+                            resultSet.getInt("membresia_id"),
+                            resultSet.getInt("miembro_id"),
+                            resultSet.getString("miembro_nombre"),
+                            resultSet.getString("plan_nombre"),
+                            resultSet.getString("estado"),
+                            resultSet.getObject("fecha_inicio", java.time.LocalDate.class),
+                            resultSet.getObject("fecha_fin", java.time.LocalDate.class)));
+                }
             }
         }
 

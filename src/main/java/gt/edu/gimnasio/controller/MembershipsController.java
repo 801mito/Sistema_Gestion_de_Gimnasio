@@ -29,18 +29,20 @@ public class MembershipsController {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final MembershipRepository membershipRepository = new MembershipRepository();
+    private final MembershipRepository membershipRepository;
     private final MemberRepository memberRepository;
     private final PlanRepository planRepository;
-    private final MembershipService membershipService = new MembershipService(membershipRepository);
+    private final MembershipService membershipService;
 
     public MembershipsController() {
         this(new GymContext());
     }
 
     public MembershipsController(GymContext gymContext) {
+        membershipRepository = new MembershipRepository(gymContext);
         memberRepository = new MemberRepository(gymContext);
         planRepository = new PlanRepository(gymContext);
+        membershipService = new MembershipService(membershipRepository);
     }
 
     @FXML
