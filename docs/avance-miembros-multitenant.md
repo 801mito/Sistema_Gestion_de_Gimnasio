@@ -1,4 +1,4 @@
-# Miembros por gimnasio — avance parcial de la #45
+# Miembros por gimnasio — verificación final de la #45
 
 ## Implementado
 
@@ -29,17 +29,19 @@ No hay un selector nuevo de gimnasio ni cambios de diseño. Si todos los miembro
 actuales pertenecen a Gimnasio Principal, visualmente seguirá apareciendo la
 misma lista. La diferencia es que no se muestran los de otro gimnasio.
 
-## Pendiente para la tanda final
+## Resultado de la #45
 
-- Verificar la compatibilidad con miembros que existían antes de la migración:
-  conservación de datos y relaciones, visibilidad, registro y edición posteriores.
-- Consolidar la revisión de recursos JDBC y las pruebas de todos los flujos.
-- Completar la documentación y la comprobación visual final de la issue.
+Quedan implementados y probados el filtrado, el registro y la edición de miembros
+por gimnasio, así como la comprobación de documentos duplicados al
+registrar/editar. La migración 1.0 a 1.1 conserva los miembros anteriores, sus
+IDs, datos y fechas de creación, y sus relaciones con membresías y códigos de
+acceso. Después de migrar, esos miembros siguen visibles y editables, y se
+pueden registrar nuevos. También se prueban la separación de listas y el
+rechazo de IDs ajenos o inexistentes.
 
-Con estas tres tandas quedan implementados el filtrado, el registro, la edición
-por gimnasio y la comprobación de documentos duplicados al registrar/editar.
-También se prueban la separación de listas y el rechazo de IDs ajenos o
-inexistentes. La #45 sigue abierta hasta terminar las verificaciones finales.
+La verificación automatizada de la #45 está completa. La issue puede cerrarse
+después de revisar e incorporar esta última tanda mediante PR; no se requiere
+otra migración ni ejecutar scripts adicionales en la base habitual.
 
 El historial y la asignación de membresías, y los códigos/accesos, quedan fuera
 de esta tanda. No utilizar varios gimnasios con datos reales todavía.
@@ -72,14 +74,29 @@ PostgreSQL, `RETURNING` vacío y cierre de recursos. Amplía `MemberServiceTest`
 `ScopedViewsIT` para el botón Actualizar, documentos duplicados y selecciones
 ajenas, obsoletas o eliminadas, incluso si falla la recarga.
 
-Verificado el 28 de septiembre de 2026 con PostgreSQL 16 temporal: 21 pruebas
-unitarias y 53 de integración aprobadas, sin errores, fallos ni omisiones.
-Incluye las regresiones de Planes y el flujo previo de registro/edición de
-miembros, además de las pruebas de lectura, registro y edición por gimnasio. No se usó
-la base habitual. Al finalizar no quedaron esquemas temporales de la suite y
-las tablas de control ajenas a esos esquemas conservaron sus datos.
+La tanda final añade `MemberMigrationIT`: siembra miembros ficticios en el
+modelo 1.0, ejecuta la migración 1.1 y comprueba conservación de IDs, nombres,
+documento, campos opcionales, fecha de creación y relación con una membresía y
+su código. Luego registra y edita miembros sin perder esas relaciones; verifica
+duplicados dentro del gimnasio, documentos iguales entre gimnasios y rechazo de
+edición ajena. `ScopedViewsIT` comprueba que la vista JavaFX muestra los miembros
+anteriores y permite editarlos y registrar uno nuevo.
 
-### Revisión visual
+Los flujos JDBC de consulta, registro y edición ya se prueban ante éxito,
+gimnasio no disponible, errores SQL y resultados vacíos de `RETURNING`. Cada
+prueba comprueba el cierre explícito de sus recursos. La nueva prueba de mapeo
+inyecta un error después de abrir el `ResultSet` de miembros y comprueba que
+se cierran `ResultSet`, `PreparedStatement` y `Connection`; una consulta posterior
+vuelve a funcionar.
+
+Verificado el 30 de septiembre de 2026 con PostgreSQL 16 temporal: 21 pruebas
+unitarias y 58 de integración aprobadas, sin errores, fallos ni omisiones.
+Incluye las regresiones de Planes y los flujos de Miembros anteriores. No se usó
+la base habitual. Al finalizar no quedaron esquemas temporales de la suite,
+las tablas de control ajenas conservaron sus datos y se detuvo el servidor de
+pruebas temporal.
+
+### Revisión manual opcional
 
 Configurar `DB_URL`, `DB_USER` y `DB_PASSWORD` en la misma terminal y ejecutar:
 
@@ -101,8 +118,10 @@ mvn javafx:run
    debe mostrar el error sin alterar los datos guardados. También se pueden
    vaciar los campos opcionales al editar.
 
-Estos pasos registran datos normalmente; no tienen rollback automático. La
-apariencia del formulario y los ejemplos Jaime David / Cardona Marmol no cambian.
+La vista también se probó de forma automatizada sin abrir una ventana. Los pasos
+anteriores son una comprobación manual adicional y registran datos normalmente;
+no tienen rollback automático. La apariencia del formulario y los ejemplos
+Jaime David / Cardona Marmol no cambian.
 
 No crear un segundo gimnasio en la base habitual para probar este avance;
 los escenarios de dos gimnasios se ejecutan dentro de esquemas temporales.

@@ -6,6 +6,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterAll;
@@ -531,6 +532,38 @@ class ScopedViewsIT {
             assertFalse(view.save().isDisabled());
             assertTrue(view.document().getText().isEmpty());
         });
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    void membersCreatedBeforeMigrationStayVisibleAndCanBeEditedBesideNewRegistrations() throws Exception {
+        fixture.close();
+        fixture = null;
+        fixture = new PostgresPlanFixture(true, PostgresPlanFixture.LEGACY_MEMBER_SETUP_SQL);
+        onFxThread(() -> {
+            MemberView view = loadMemberView();
+            assertEquals(List.of(101, 102), view.table().getItems().stream().map(Member::getId).toList());
+            assertFalse(view.save().isDisabled());
+            Member original = view.table().getItems().stream()
+                    .filter(member -> member.getId() == 101).findFirst().orElseThrow();
+            view.table().getSelectionModel().select(original);
+            assertFalse(view.update().isDisabled());
+            view.lastNames().setText("Cardona Marmol actualizado");
+            view.update().fire();
+            assertTrue(view.feedback().getText().contains("actualizado correctamente"));
+            assertEquals("Cardona Marmol actualizado", view.table().getItems().stream()
+                    .filter(member -> member.getId() == 101).findFirst().orElseThrow().getLastNames());
+
+            view.firstNames().setText("Nuevo");
+            view.lastNames().setText("Posterior");
+            view.document().setText("DOC-AFTER");
+            view.save().fire();
+            assertTrue(view.feedback().getText().contains("registrado correctamente"));
+            assertEquals(3, view.table().getItems().size());
+            assertTrue(view.table().getItems().stream().anyMatch(member -> member.getId() == 102));
+            assertTrue(view.table().getItems().stream().anyMatch(member -> "DOC-AFTER".equals(member.getDocumentNumber())));
+        });
+        assertEquals(3, new MemberRepository().findAll().size());
         fixture.assertResourcesClosed();
     }
 
