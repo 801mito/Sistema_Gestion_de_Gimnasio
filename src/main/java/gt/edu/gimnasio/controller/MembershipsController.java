@@ -135,6 +135,8 @@ public class MembershipsController {
                     + ". Código generado: " + accessCode + ".", true);
         } catch (MembershipValidationException exception) {
             showFeedback(exception.getMessage(), false);
+        } catch (IllegalStateException exception) {
+            showFeedback(exception.getMessage(), false);
         } catch (SQLException exception) {
             showFeedback("No fue posible asignar la membresía. Verifica la conexión a PostgreSQL.", false);
         }
