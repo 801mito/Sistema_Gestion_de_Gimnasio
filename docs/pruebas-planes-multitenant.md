@@ -7,9 +7,10 @@ las opciones de planes activos para asignar membresías se consultan por
 `gimnasio_id`. Registrar, editar, activar y desactivar planes también respetan
 ese contexto.
 
-Estas pruebas no agregan un selector de gimnasio ni adaptan los repositorios de
-miembros, membresías o accesos. No utilizar varios gimnasios con datos reales
-hasta completar el aislamiento de los demás módulos.
+Esta guía documenta el alcance de la #44. Posteriormente se aislaron
+[Miembros](avance-miembros-multitenant.md) y
+[Membresías](avance-membresias-multitenant.md). Todavía no hay selector de
+gimnasio ni aislamiento de accesos: no utilizar varios gimnasios con datos reales.
 
 ## Pruebas unitarias
 
@@ -106,8 +107,8 @@ $testCredential = $null
 
 Resultado esperado: ningún fallo, error ni prueba omitida y, al final,
 `BUILD SUCCESS`. Al cerrar la #44 eran 12 pruebas unitarias y 18 de integración.
-El perfil también ejecuta ahora las pruebas añadidas durante la #45; consultar
-[el avance de Miembros](avance-miembros-multitenant.md) para su cobertura parcial.
+El mismo perfil ejecuta además las pruebas añadidas durante las issues #45 y
+#55; consultar sus guías para el alcance de Miembros y Membresías.
 
 Los reportes quedan en `target/surefire-reports` y `target/failsafe-reports`.
 `target` está ignorado por Git.
