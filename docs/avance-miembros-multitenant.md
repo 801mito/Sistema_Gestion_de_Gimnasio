@@ -39,12 +39,15 @@ acceso. Después de migrar, esos miembros siguen visibles y editables, y se
 pueden registrar nuevos. También se prueban la separación de listas y el
 rechazo de IDs ajenos o inexistentes.
 
-La verificación automatizada de la #45 está completa. La issue puede cerrarse
-después de revisar e incorporar esta última tanda mediante PR; no se requiere
-otra migración ni ejecutar scripts adicionales en la base habitual.
+La verificación automatizada de la #45 está completa y la issue se cerró tras
+incorporar sus cambios. No se requiere otra migración ni ejecutar scripts
+adicionales en la base habitual.
 
-El historial y la asignación de membresías, y los códigos/accesos, quedan fuera
-de esta tanda. No utilizar varios gimnasios con datos reales todavía.
+El historial y la asignación de membresías quedaron fuera de la #45; su
+implementación posterior se describe en
+[la verificación de Membresías](avance-membresias-multitenant.md). Los códigos y
+la validación de accesos siguen pendientes de aislamiento. No utilizar varios
+gimnasios con datos reales todavía.
 
 ## Verificación
 

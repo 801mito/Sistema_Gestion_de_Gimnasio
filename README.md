@@ -72,8 +72,9 @@ Los nombres duplicados se validan dentro de ese gimnasio. Dos gimnasios pueden
 tener un plan con el mismo nombre sin compartir sus registros.
 
 Esto **no significa que toda la aplicación ya esté aislada**: aún falta aislar
-membresías y accesos. No hay selector de gimnasio ni inicio de sesión. No utilizar
-un segundo gimnasio con datos reales hasta completar esas partes.
+los códigos y la validación de accesos, además de los futuros intentos de acceso.
+No hay selector de gimnasio ni inicio de sesión. No utilizar un segundo gimnasio
+con datos reales hasta completar esas partes.
 
 La #45 verifica que la tabla de Miembros y el selector de miembros en Membresías
 consultan por gimnasio. El registro envía `gimnasio_id` explícitamente y comprueba
@@ -83,7 +84,14 @@ Las pruebas comprueban además que los miembros y relaciones anteriores a la
 migración permanecen y que los recursos JDBC se cierran correctamente. Ver
 [la verificación de Miembros](docs/avance-miembros-multitenant.md).
 
-## Pruebas de Planes
+La #55 filtra el historial de Membresías por gimnasio. Al asignar, verifica que
+el gimnasio esté activo y que el miembro y el plan le pertenezcan, comprueba la
+membresía activa dentro de ese gimnasio y guarda `gimnasio_id` explícitamente.
+La asignación y la generación del código permanecen en una sola transacción:
+si falla el código, se revierte también la membresía. Ver
+[la verificación de Membresías](docs/avance-membresias-multitenant.md).
+
+## Pruebas
 
 Las pruebas unitarias no requieren PostgreSQL ni credenciales:
 
@@ -95,6 +103,6 @@ Las pruebas de integración se ejecutan únicamente con el perfil `postgres-it`
 y utilizan variables `TEST_DB_*` separadas de las de la aplicación. Crean y
 eliminan esquemas temporales en una base de pruebas.
 
-Consultar [la guía de pruebas de Planes](docs/pruebas-planes-multitenant.md)
-para los comandos, cobertura y comprobación visual. `mvn clean verify` sin el
-perfil **no** verifica la integración con PostgreSQL.
+Consultar [la guía de pruebas con PostgreSQL](docs/pruebas-planes-multitenant.md)
+para configurar el perfil; las guías de cada módulo explican su cobertura.
+`mvn clean verify` sin el perfil **no** verifica la integración con PostgreSQL.
