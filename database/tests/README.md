@@ -69,11 +69,13 @@ de esquemas temporales. Incluye consultas y escrituras aisladas, duplicados,
 compatibilidad con la migración y cierre explícito de conexiones, sentencias y
 resultados, tanto en operaciones correctas como en errores.
 
-La primera tanda de la issue #61 agrega `V1_2__crear_empleados.sql`. El perfil
+La issue #61 agrega `V1_2__crear_empleados.sql`. El perfil
 `postgres-it` lo aplica en esquemas temporales de la base de pruebas; no lo
 aplica en la base habitual. Consultar
 [la guía de pruebas de Planes](../../docs/pruebas-planes-multitenant.md)
 para configurar `TEST_DB_*` y ejecutar `mvn clean verify -Ppostgres-it`.
+La cobertura de autenticación se describe en
+[la guía de empleados](../../docs/autenticacion-empleados.md).
 
 ## Resultado de la validación
 

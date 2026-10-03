@@ -2,7 +2,7 @@
 
 Esta carpeta contiene cambios que deben aplicarse sobre una base de datos existente y no se ejecutan automáticamente al iniciar la aplicación.
 
-## Versión 1.2: cuentas de empleados (issue #61, primera tanda)
+## Versión 1.2: cuentas de empleados (issue #61)
 
 `V1_2__crear_empleados.sql` crea la tabla `empleado` después del modelo 1.1.
 Cada cuenta tiene un único `gimnasio_id` obligatorio y un usuario único en toda
@@ -14,7 +14,8 @@ no como texto plano.
 
 Las pruebas automáticas aplican esta migración sólo dentro de esquemas temporales
 de una base de pruebas. No es necesario ejecutarla en la base habitual para
-verificar esta tanda.
+verificar esta issue.
+Ver [el flujo y las limitaciones de autenticación](../../docs/autenticacion-empleados.md).
 
 ## Versión 1.1 multitenant
 

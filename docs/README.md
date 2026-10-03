@@ -6,4 +6,5 @@ Esta carpeta contiene la documentación del proyecto.
 - [Verificación del aislamiento de miembros por gimnasio](avance-miembros-multitenant.md).
 - [Verificación del aislamiento de membresías por gimnasio](avance-membresias-multitenant.md).
 - [Verificación del aislamiento de códigos y accesos por gimnasio](avance-accesos-multitenant.md).
+- [Cuentas y autenticación de empleados](autenticacion-empleados.md).
 - [Modelo de datos y diagramas DER](diagramas/der/README.md).
