@@ -6,10 +6,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import gt.edu.gimnasio.config.DatabaseConnection;
 import gt.edu.gimnasio.model.AccessCode;
 import gt.edu.gimnasio.model.AccessValidationData;
+import gt.edu.gimnasio.service.GymContext;
 
 /** Guarda y consulta códigos de acceso asociados a membresías. */
 public class AccessCodeRepository {
@@ -39,13 +41,20 @@ public class AccessCodeRepository {
             INNER JOIN membresia ON membresia.membresia_id = codigo_acceso.membresia_id
             INNER JOIN miembro ON miembro.miembro_id = membresia.miembro_id
             INNER JOIN plan ON plan.plan_id = membresia.plan_id
+            INNER JOIN gimnasio ON gimnasio.gimnasio_id = membresia.gimnasio_id
+            WHERE membresia.gimnasio_id = ? AND gimnasio.gimnasio_activo = TRUE
             ORDER BY codigo_acceso.codigo_creado_en DESC, codigo_acceso.codigo_acceso_id DESC
             """;
 
     private static final String UPDATE_ACTIVE_STATUS_SQL = """
             UPDATE codigo_acceso
             SET codigo_activo = ?
-            WHERE codigo_acceso_id = ?
+            FROM membresia
+            INNER JOIN gimnasio ON gimnasio.gimnasio_id = membresia.gimnasio_id
+            WHERE codigo_acceso.codigo_acceso_id = ?
+              AND codigo_acceso.membresia_id = membresia.membresia_id
+              AND membresia.gimnasio_id = ?
+              AND gimnasio.gimnasio_activo = TRUE
             """;
 
     private static final String FIND_VALIDATION_DATA_BY_CODE_SQL = """
@@ -59,26 +68,42 @@ public class AccessCodeRepository {
             FROM codigo_acceso
             INNER JOIN membresia ON membresia.membresia_id = codigo_acceso.membresia_id
             INNER JOIN miembro ON miembro.miembro_id = membresia.miembro_id
+            INNER JOIN gimnasio ON gimnasio.gimnasio_id = membresia.gimnasio_id
             WHERE codigo_acceso.codigo = ?
+              AND membresia.gimnasio_id = ?
+              AND gimnasio.gimnasio_activo = TRUE
             """;
+
+    private final GymContext gymContext;
+
+    public AccessCodeRepository() {
+        this(new GymContext());
+    }
+
+    public AccessCodeRepository(GymContext gymContext) {
+        this.gymContext = Objects.requireNonNull(gymContext);
+    }
 
     /** Obtiene los códigos registrados con su miembro y plan asociados. */
     public List<AccessCode> findAll() throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
         List<AccessCode> accessCodes = new ArrayList<>();
 
         try (Connection connection = DatabaseConnection.openConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL);
-             ResultSet resultSet = statement.executeQuery()) {
+             PreparedStatement statement = connection.prepareStatement(FIND_ALL_SQL)) {
+            statement.setInt(1, gymId);
 
-            while (resultSet.next()) {
-                accessCodes.add(new AccessCode(
-                        resultSet.getInt("codigo_acceso_id"),
-                        resultSet.getInt("membresia_id"),
-                        resultSet.getString("miembro_nombre"),
-                        resultSet.getString("plan_nombre"),
-                        resultSet.getString("codigo"),
-                        resultSet.getBoolean("codigo_activo"),
-                        resultSet.getObject("codigo_creado_en", java.time.LocalDateTime.class)));
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    accessCodes.add(new AccessCode(
+                            resultSet.getInt("codigo_acceso_id"),
+                            resultSet.getInt("membresia_id"),
+                            resultSet.getString("miembro_nombre"),
+                            resultSet.getString("plan_nombre"),
+                            resultSet.getString("codigo"),
+                            resultSet.getBoolean("codigo_activo"),
+                            resultSet.getObject("codigo_creado_en", java.time.LocalDateTime.class)));
+                }
             }
         }
 
@@ -87,22 +112,30 @@ public class AccessCodeRepository {
 
     /** Cambia el estado de un código sin eliminar su historial. */
     public void updateActiveStatus(int accessCodeId, boolean active) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE_ACTIVE_STATUS_SQL)) {
             statement.setBoolean(1, active);
             statement.setInt(2, accessCodeId);
+            statement.setInt(3, gymId);
 
-            if (statement.executeUpdate() != 1) {
-                throw new SQLException("No se encontró el código de acceso seleccionado.");
+            int updatedRows = statement.executeUpdate();
+            if (updatedRows == 0) {
+                throw new AccessCodeNotFoundException();
+            }
+            if (updatedRows != 1) {
+                throw new SQLException("El cambio de estado no afectó exactamente a un código de acceso.");
             }
         }
     }
 
     /** Busca la información necesaria para validar un código y su membresía. */
     public AccessValidationData findValidationDataByCode(String code) throws SQLException {
+        int gymId = gymContext.getCurrentGymId();
         try (Connection connection = DatabaseConnection.openConnection();
              PreparedStatement statement = connection.prepareStatement(FIND_VALIDATION_DATA_BY_CODE_SQL)) {
             statement.setString(1, code);
+            statement.setInt(2, gymId);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (!resultSet.next()) {

@@ -76,9 +76,9 @@ rollback automático.
 
 ## Límites pendientes
 
-La lista, activación/desactivación y validación de códigos de acceso todavía
-no están aisladas por gimnasio. Los intentos de acceso aún no se registran en
-la aplicación. Tampoco hay autenticación ni selección de gimnasio. Por tanto,
-**no utilizar un segundo gimnasio con datos reales todavía**. El aislamiento
-de accesos debe abordarse antes de considerar la aplicación multitenant para
-uso real.
+Esta guía describe el alcance histórico de la #55. La lista,
+activación/desactivación y validación de códigos se aislaron posteriormente en
+[la #59](avance-accesos-multitenant.md). Los intentos de acceso aún no se
+registran en la aplicación. Tampoco hay autenticación ni selección autorizada
+de gimnasio. Por tanto, **no utilizar un segundo gimnasio con datos reales
+todavía**.

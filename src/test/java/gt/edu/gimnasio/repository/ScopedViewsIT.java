@@ -27,12 +27,14 @@ import javafx.scene.control.TextField;
 import gt.edu.gimnasio.model.Plan;
 import gt.edu.gimnasio.model.Member;
 import gt.edu.gimnasio.model.Membership;
+import gt.edu.gimnasio.model.AccessCode;
 import gt.edu.gimnasio.model.Gym;
 import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.MemberService;
 import gt.edu.gimnasio.service.PlanService;
 import gt.edu.gimnasio.controller.MembersController;
 import gt.edu.gimnasio.controller.MembershipsController;
+import gt.edu.gimnasio.controller.AccessesController;
 import gt.edu.gimnasio.controller.MainController;
 import javafx.scene.control.ComboBox;
 import javafx.scene.layout.VBox;
@@ -347,7 +349,74 @@ class ScopedViewsIT {
             ((Button) mainLoader.getNamespace().get("membershipsButton")).fire();
             VBox membershipsView = (VBox) content.getChildren().getFirst();
             assertEquals(1, ((ComboBox<?>) membershipsView.lookup("#memberComboBox")).getItems().size());
+            ((Button) mainLoader.getNamespace().get("accessButton")).fire();
+            VBox accessesView = (VBox) content.getChildren().getFirst();
+            assertNotNull(accessesView.lookup("#accessCodesTable"));
+            assertTrue(((Label) accessesView.lookup("#feedbackLabel")).getText().isEmpty());
         });
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void accessViewFiltersCodesAndRejectsForeignSelectionAndValidation() throws Exception {
+        fixture.execute("""
+                INSERT INTO plan (plan_id, gimnasio_id, nombre, duracion_dias)
+                VALUES (101, 41, 'Plan principal', 30), (201, 73, 'Plan secundario', 30);
+                INSERT INTO miembro (miembro_id, gimnasio_id, nombres, apellidos)
+                VALUES (301, 41, 'Jaime', 'Principal'), (401, 73, 'Ana', 'Secundaria');
+                INSERT INTO membresia (membresia_id, gimnasio_id, plan_id, miembro_id,
+                                       estado, fecha_inicio, fecha_fin)
+                VALUES (501, 41, 101, 301, 'ACTIVA', CURRENT_DATE - 7, CURRENT_DATE + 7),
+                       (601, 73, 201, 401, 'ACTIVA', CURRENT_DATE - 7, CURRENT_DATE + 7);
+                INSERT INTO codigo_acceso (codigo_acceso_id, membresia_id, codigo)
+                VALUES (701, 501, 'GYM-PRIMARY701'), (801, 601, 'GYM-SECONDARY801');
+                """);
+        GymContext secondary = new GymContext(new GymRepository() {
+            @Override
+            public Optional<Gym> findByName(String ignored) throws SQLException {
+                return super.findByName("Gimnasio Secundario");
+            }
+        });
+
+        onFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/accesses-view.fxml"));
+            loader.setControllerFactory(type -> new AccessesController(secondary));
+            loader.load();
+            var controls = loader.getNamespace();
+            TableView<AccessCode> table = (TableView<AccessCode>) controls.get("accessCodesTable");
+            TextField input = (TextField) controls.get("accessCodeField");
+            Label result = (Label) controls.get("validationResultLabel");
+            Label feedback = (Label) controls.get("feedbackLabel");
+            Button activate = (Button) controls.get("activateButton");
+            Button deactivate = (Button) controls.get("deactivateButton");
+            Button validate = (Button) ((VBox) loader.getRoot()).lookup(".primary-button");
+
+            assertEquals(List.of(801), table.getItems().stream().map(AccessCode::getId).toList());
+            input.setText("GYM-PRIMARY701");
+            validate.fire();
+            assertEquals("El código ingresado no existe.", result.getText());
+            input.setText("GYM-SECONDARY801");
+            validate.fire();
+            assertTrue(result.getText().contains("Acceso autorizado"));
+
+            table.getSelectionModel().selectFirst();
+            deactivate.fire();
+            assertFalse(table.getItems().getFirst().isActive());
+            table.getSelectionModel().selectFirst();
+            activate.fire();
+            assertTrue(table.getItems().getFirst().isActive());
+
+            AccessCode foreign = new AccessCode(701, 501, "Jaime Principal", "Plan principal",
+                    "GYM-PRIMARY701", true, table.getItems().getFirst().getCreatedAt());
+            table.getItems().add(foreign);
+            table.getSelectionModel().select(foreign);
+            deactivate.fire();
+            assertEquals("No se encontró el código de acceso en el gimnasio actual.", feedback.getText());
+            assertEquals(List.of(801), table.getItems().stream().map(AccessCode::getId).toList());
+        });
+        assertTrue(new AccessCodeRepository().findAll().getFirst().isActive());
+        assertTrue(new AccessCodeRepository(secondary).findAll().getFirst().isActive());
         fixture.assertResourcesClosed();
     }
 

@@ -10,7 +10,9 @@ ese contexto.
 Esta guía documenta el alcance de la #44. Posteriormente se aislaron
 [Miembros](avance-miembros-multitenant.md) y
 [Membresías](avance-membresias-multitenant.md). Todavía no hay selector de
-gimnasio ni aislamiento de accesos: no utilizar varios gimnasios con datos reales.
+gimnasio ni inicio de sesión. Los códigos y su validación se aislaron después
+en [la #59](avance-accesos-multitenant.md); aún no se aíslan los intentos de
+acceso. No utilizar varios gimnasios con datos reales.
 
 ## Pruebas unitarias
 
