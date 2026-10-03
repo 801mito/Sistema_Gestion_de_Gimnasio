@@ -2,6 +2,20 @@
 
 Esta carpeta contiene cambios que deben aplicarse sobre una base de datos existente y no se ejecutan automáticamente al iniciar la aplicación.
 
+## Versión 1.2: cuentas de empleados (issue #61, primera tanda)
+
+`V1_2__crear_empleados.sql` crea la tabla `empleado` después del modelo 1.1.
+Cada cuenta tiene un único `gimnasio_id` obligatorio y un usuario único en toda
+la aplicación. La migración no crea cuentas ni contraseñas predeterminadas.
+Antes de aplicarla a la base habitual, realizar un respaldo y revisar la tanda;
+la aplicación JavaFX todavía no utiliza estas cuentas para iniciar sesión.
+Las contraseñas se almacenan como hashes PBKDF2-HMAC-SHA-256 con sal aleatoria,
+no como texto plano.
+
+Las pruebas automáticas aplican esta migración sólo dentro de esquemas temporales
+de una base de pruebas. No es necesario ejecutarla en la base habitual para
+verificar esta tanda.
+
 ## Versión 1.1 multitenant
 
 `V1_1__preparar_modelo_multitenant.sql` crea el gimnasio inicial y asocia los planes, miembros y membresías existentes con ese gimnasio.
