@@ -97,6 +97,11 @@ puede activarse o desactivarse por ID y se rechaza igual que uno inexistente.
 La generación conserva la unicidad global de los códigos. Ver
 [la verificación de Accesos](docs/avance-accesos-multitenant.md).
 
+La #61 añade cuentas de empleados vinculadas a un gimnasio y un servicio que
+verifica sus credenciales. Aún no hay pantalla de login ni se usa esa identidad
+para reemplazar el `GymContext` fijo. Ver
+[el alcance y las limitaciones de la autenticación](docs/autenticacion-empleados.md).
+
 ## Pruebas
 
 Las pruebas unitarias no requieren PostgreSQL ni credenciales:
