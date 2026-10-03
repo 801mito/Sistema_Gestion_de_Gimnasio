@@ -71,10 +71,10 @@ de PostgreSQL por su nombre; no se supone que su ID sea 1.
 Los nombres duplicados se validan dentro de ese gimnasio. Dos gimnasios pueden
 tener un plan con el mismo nombre sin compartir sus registros.
 
-Esto **no significa que toda la aplicación ya esté aislada**: aún falta aislar
-los códigos y la validación de accesos, además de los futuros intentos de acceso.
-No hay selector de gimnasio ni inicio de sesión. No utilizar un segundo gimnasio
-con datos reales hasta completar esas partes.
+Esto **no significa que la aplicación ya sea multitenant para uso real**: los
+intentos de acceso todavía no se registran ni aíslan por gimnasio. Tampoco hay
+inicio de sesión ni selección autorizada de gimnasio. No utilizar un segundo
+gimnasio con datos reales hasta completar esas partes.
 
 La #45 verifica que la tabla de Miembros y el selector de miembros en Membresías
 consultan por gimnasio. El registro envía `gimnasio_id` explícitamente y comprueba
@@ -90,6 +90,12 @@ membresía activa dentro de ese gimnasio y guarda `gimnasio_id` explícitamente.
 La asignación y la generación del código permanecen en una sola transacción:
 si falla el código, se revierte también la membresía. Ver
 [la verificación de Membresías](docs/avance-membresias-multitenant.md).
+
+La #59 filtra los códigos y la validación de acceso por el gimnasio actual a
+través de la membresía asociada. Un código de otro gimnasio no aparece, no
+puede activarse o desactivarse por ID y se rechaza igual que uno inexistente.
+La generación conserva la unicidad global de los códigos. Ver
+[la verificación de Accesos](docs/avance-accesos-multitenant.md).
 
 ## Pruebas
 

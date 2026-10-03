@@ -107,6 +107,7 @@ public class MainController {
         try {
             FXMLLoader loader = new FXMLLoader(
                     MainController.class.getResource("/gt/edu/gimnasio/view/accesses-view.fxml"));
+            loader.setControllerFactory(controllerType -> new AccessesController(gymContext));
             VBox accessesView = loader.load();
             contentArea.getChildren().setAll(accessesView);
         } catch (IOException exception) {

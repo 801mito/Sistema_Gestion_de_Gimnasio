@@ -6,8 +6,10 @@ import java.util.List;
 
 import gt.edu.gimnasio.model.AccessCode;
 import gt.edu.gimnasio.model.AccessValidationResult;
+import gt.edu.gimnasio.repository.AccessCodeNotFoundException;
 import gt.edu.gimnasio.repository.AccessCodeRepository;
 import gt.edu.gimnasio.service.AccessValidationService;
+import gt.edu.gimnasio.service.GymContext;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -23,9 +25,17 @@ public class AccessesController {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    private final AccessCodeRepository accessCodeRepository = new AccessCodeRepository();
-    private final AccessValidationService accessValidationService =
-            new AccessValidationService(accessCodeRepository);
+    private final AccessCodeRepository accessCodeRepository;
+    private final AccessValidationService accessValidationService;
+
+    public AccessesController() {
+        this(new GymContext());
+    }
+
+    public AccessesController(GymContext gymContext) {
+        accessCodeRepository = new AccessCodeRepository(gymContext);
+        accessValidationService = new AccessValidationService(accessCodeRepository);
+    }
 
     @FXML private TextField accessCodeField;
     @FXML private Label validationResultLabel;
@@ -88,10 +98,16 @@ public class AccessesController {
         try {
             accessCodeRepository.updateActiveStatus(selectedCode.getId(), active);
 
+            String status = active ? "activado" : "desactivado";
             if (loadAccessCodes()) {
-                String status = active ? "activado" : "desactivado";
                 showFeedback("Código " + selectedCode.getCode() + " " + status + " correctamente.", true);
+            } else {
+                showFeedback("Código " + selectedCode.getCode() + " " + status
+                        + ", pero no fue posible recargar la lista. Vuelve a abrir Accesos para consultar los datos.", false);
             }
+        } catch (AccessCodeNotFoundException exception) {
+            loadAccessCodes();
+            showFeedback(exception.getMessage(), false);
         } catch (SQLException | IllegalStateException exception) {
             showFeedback("No fue posible cambiar el estado del código. Verifica la conexión a PostgreSQL.", false);
         }

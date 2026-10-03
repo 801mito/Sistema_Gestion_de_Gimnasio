@@ -45,8 +45,10 @@ adicionales en la base habitual.
 
 El historial y la asignación de membresías quedaron fuera de la #45; su
 implementación posterior se describe en
-[la verificación de Membresías](avance-membresias-multitenant.md). Los códigos y
-la validación de accesos siguen pendientes de aislamiento. No utilizar varios
+[la verificación de Membresías](avance-membresias-multitenant.md). El aislamiento
+posterior de códigos y validación se describe en
+[la verificación de Accesos](avance-accesos-multitenant.md). Aún faltan los
+intentos de acceso y una selección autorizada de gimnasio; no utilizar varios
 gimnasios con datos reales todavía.
 
 ## Verificación
