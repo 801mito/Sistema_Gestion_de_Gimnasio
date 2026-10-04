@@ -3,6 +3,7 @@ package gt.edu.gimnasio.service;
 import java.sql.SQLException;
 import java.sql.Connection;
 import java.time.LocalDate;
+import java.util.Objects;
 
 import gt.edu.gimnasio.config.DatabaseConnection;
 import gt.edu.gimnasio.model.Member;
@@ -18,8 +19,8 @@ public class MembershipService {
     private final AccessCodeGenerator accessCodeGenerator;
 
     public MembershipService(MembershipRepository membershipRepository) {
-        this.membershipRepository = membershipRepository;
-        accessCodeRepository = new AccessCodeRepository();
+        this.membershipRepository = Objects.requireNonNull(membershipRepository);
+        accessCodeRepository = new AccessCodeRepository(membershipRepository.getGymContext());
         accessCodeGenerator = new AccessCodeGenerator(accessCodeRepository);
     }
 
