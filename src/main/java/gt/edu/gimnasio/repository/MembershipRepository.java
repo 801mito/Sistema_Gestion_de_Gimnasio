@@ -106,6 +106,11 @@ public class MembershipRepository {
         return gymContext.getCurrentGymId();
     }
 
+    /** Comparte el mismo contexto con los servicios que operan esta membresía. */
+    public GymContext getGymContext() {
+        return gymContext;
+    }
+
     /** Revalida el gimnasio en la misma transacción, incluso si el contexto estaba en caché. */
     public boolean isGymActive(Connection connection, int gymId) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(FIND_ACTIVE_GYM_SQL)) {

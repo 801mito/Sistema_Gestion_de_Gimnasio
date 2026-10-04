@@ -26,7 +26,8 @@ de la membresía.
 
 - JDK 21 o superior instalado.
 - Maven instalado y disponible en la terminal.
-- PostgreSQL 16 y la migración multitenant 1.1 aplicada para utilizar los módulos con datos.
+- PostgreSQL 16, las migraciones multitenant 1.1 y de empleados 1.2, y una
+  primera cuenta de empleado para el gimnasio donde se trabajará.
 
 ### Comando
 
@@ -39,6 +40,10 @@ mvn clean javafx:run
 La primera ejecución descarga las dependencias de JavaFX y PostgreSQL JDBC.
 Configura las variables de conexión indicadas abajo **antes** de iniciar la
 aplicación y en la misma terminal.
+
+La aplicación ahora abre en el inicio de sesión y no muestra los módulos sin
+una cuenta válida. Para preparar la primera cuenta localmente, sigue
+[la guía de autenticación](docs/autenticacion-empleados.md#preparar-el-primer-empleado-avance-de-la-issue-64).
 
 ## Conexión a PostgreSQL
 
@@ -72,9 +77,10 @@ Los nombres duplicados se validan dentro de ese gimnasio. Dos gimnasios pueden
 tener un plan con el mismo nombre sin compartir sus registros.
 
 Esto **no significa que la aplicación ya sea multitenant para uso real**: los
-intentos de acceso todavía no se registran ni aíslan por gimnasio. Tampoco hay
-inicio de sesión ni selección autorizada de gimnasio. No utilizar un segundo
-gimnasio con datos reales hasta completar esas partes.
+intentos de acceso todavía no se registran ni aíslan por gimnasio. El login
+JavaFX obtiene el gimnasio de la cuenta y permite cerrar sesión. Esto aún no
+reemplaza el aislamiento impuesto por permisos de PostgreSQL. No utilizar
+datos reales de varios gimnasios hasta contar con esos controles de base de datos.
 
 La #45 verifica que la tabla de Miembros y el selector de miembros en Membresías
 consultan por gimnasio. El registro envía `gimnasio_id` explícitamente y comprueba
@@ -98,8 +104,8 @@ La generación conserva la unicidad global de los códigos. Ver
 [la verificación de Accesos](docs/avance-accesos-multitenant.md).
 
 La #61 añade cuentas de empleados vinculadas a un gimnasio y un servicio que
-verifica sus credenciales. Aún no hay pantalla de login ni se usa esa identidad
-para reemplazar el `GymContext` fijo. Ver
+verifica sus credenciales. La #64 conecta ese servicio al login JavaFX y pasa
+el gimnasio del empleado a los módulos. Ver
 [el alcance y las limitaciones de la autenticación](docs/autenticacion-empleados.md).
 
 ## Pruebas

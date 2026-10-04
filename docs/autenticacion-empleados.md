@@ -59,9 +59,14 @@ no se imprime ni queda en la línea de comandos. Debe usarse en una terminal
 interactiva real; sin ella, se cancela. El acceso a esta herramienta y a las
 credenciales de PostgreSQL debe limitarse a quien administra la instalación.
 
-`GymContext` ya puede construirse con el `Employee` devuelto por la
-autenticación y resolver su gimnasio por ID. `MainController` admite recibir
-ese contexto compartido, pero la aplicación todavía no lo conecta al login.
+`GymContext` se construye con el `Employee` devuelto por la autenticación y
+resuelve su gimnasio por ID. Al iniciar, JavaFX muestra el login; sólo después
+de autenticar carga la ventana principal con ese contexto compartido. Miembros,
+Planes, Membresías y Accesos lo reciben desde la navegación. El empleado y
+gimnasio se muestran como información de solo lectura, sin selector. Al pulsar
+**Cerrar sesión**, se descartan el contexto y las vistas de la sesión anterior,
+se desactiva su navegación y vuelve a mostrarse el login. Hay que autenticarse
+de nuevo para consultar o modificar datos desde la interfaz.
 
 ## Pruebas
 
@@ -74,13 +79,15 @@ temporales en una base de pruebas separada; no usa las tablas habituales.
 Se verifican cuentas de dos gimnasios, usuario duplicado, contraseña errónea,
 usuario inexistente, cuenta inactiva, gimnasio inactivo, cambio de asociación
 del empleado, hash inválido y cierre de recursos JDBC incluso ante fallos SQL.
+Una prueba JavaFX adicional cubre login, aislamiento visual de planes, cierre
+de sesión, bloqueo de una vista anterior y nuevo login con otro gimnasio.
 
 ## Limitaciones actuales
 
-- No existe todavía pantalla de login ni cierre de sesión. El aprovisionamiento
-  inicial es una herramienta local, no un panel administrativo. JavaFX continúa usando
-  `Gimnasio Principal` mediante `GymContext`; el servicio de autenticación aún
-  no controla las pantallas ni los repositorios de los módulos.
+- El aprovisionamiento inicial es una herramienta local, no un panel
+  administrativo. Los constructores sin argumentos que usan el gimnasio fijo
+  permanecen para pruebas y código legado, pero el arranque normal pasa el
+  contexto autenticado a la navegación.
 - No hay control de intentos repetidos, bloqueo temporal, auditoría de login ni
   gestión de sesiones. Esos controles deberán definirse antes de uso real.
 - La aplicación de escritorio se conecta directamente a PostgreSQL con las

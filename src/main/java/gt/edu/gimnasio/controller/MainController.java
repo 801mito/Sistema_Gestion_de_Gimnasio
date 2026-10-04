@@ -9,20 +9,42 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
+import gt.edu.gimnasio.model.Employee;
+import gt.edu.gimnasio.service.EmployeeSession;
 import gt.edu.gimnasio.service.GymContext;
 
 /** Controla la navegación de los módulos principales de la aplicación. */
 public class MainController {
 
     private final GymContext gymContext;
+    private final Employee employee;
+    private final Runnable logoutAction;
+    private boolean active = true;
 
     public MainController() {
-        this(new GymContext());
+        this(new GymContext(), null, null);
     }
 
     public MainController(GymContext gymContext) {
-        this.gymContext = Objects.requireNonNull(gymContext);
+        this(gymContext, null, null);
     }
+
+    public MainController(EmployeeSession session, Runnable logoutAction) {
+        this(Objects.requireNonNull(session).getGymContext(), session.getEmployee(),
+                Objects.requireNonNull(logoutAction));
+    }
+
+    private MainController(GymContext gymContext, Employee employee, Runnable logoutAction) {
+        this.gymContext = Objects.requireNonNull(gymContext);
+        this.employee = employee;
+        this.logoutAction = logoutAction;
+    }
+
+    @FXML
+    private Label currentSessionLabel;
+
+    @FXML
+    private Button logoutButton;
 
     @FXML
     private VBox contentArea;
@@ -44,11 +66,29 @@ public class MainController {
 
     @FXML
     private void initialize() {
+        if (employee != null) {
+            currentSessionLabel.setText(employee.getUsername() + " · " + employee.getGymName());
+        }
+        logoutButton.setManaged(logoutAction != null);
+        logoutButton.setVisible(logoutAction != null);
         showHome();
     }
 
     @FXML
+    private void logout() {
+        if (!active || logoutAction == null) {
+            return;
+        }
+        active = false;
+        contentArea.getChildren().clear();
+        List.of(homeButton, membersButton, plansButton, membershipsButton, accessButton, logoutButton)
+                .forEach(button -> button.setDisable(true));
+        logoutAction.run();
+    }
+
+    @FXML
     private void showHome() {
+        if (!active) return;
         setActiveButton(homeButton);
 
         Label title = createLabel("Inicio", "content-title");
@@ -60,6 +100,7 @@ public class MainController {
 
     @FXML
     private void showMembers() {
+        if (!active) return;
         setActiveButton(membersButton);
 
         try {
@@ -77,6 +118,7 @@ public class MainController {
 
     @FXML
     private void showPlans() {
+        if (!active) return;
         setActiveButton(plansButton);
 
         try {
@@ -94,6 +136,7 @@ public class MainController {
 
     @FXML
     private void showMemberships() {
+        if (!active) return;
         setActiveButton(membershipsButton);
 
         try {
@@ -111,6 +154,7 @@ public class MainController {
 
     @FXML
     private void showAccess() {
+        if (!active) return;
         setActiveButton(accessButton);
 
         try {

@@ -5,6 +5,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
@@ -31,6 +32,10 @@
                 <Insets bottom="16.0" left="28.0" right="28.0" top="16.0" />
             </padding>
             <Label styleClass="topbar-text" text="Aplicación de escritorio" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="currentSessionLabel" styleClass="session-label" />
+            <Button fx:id="logoutButton" mnemonicParsing="false" onAction="#logout"
+                    styleClass="secondary-button" text="Cerrar sesión" />
         </HBox>
     </top>
     <center>

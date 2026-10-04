@@ -24,6 +24,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
+import gt.edu.gimnasio.app.GimnasioApplication;
 import gt.edu.gimnasio.model.Plan;
 import gt.edu.gimnasio.model.Member;
 import gt.edu.gimnasio.model.Membership;
@@ -73,6 +75,77 @@ class ScopedViewsIT {
         if (fixture != null) {
             fixture.close();
         }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void loginLogoutAndSecondGymCannotReadOrChangeFirstGymPlans() throws Exception {
+        EmployeeRepository accounts = new EmployeeRepository();
+        accounts.save(41, "jaime", "clave-principal-larga".toCharArray());
+        accounts.save(73, "ana", "clave-secundaria-larga".toCharArray());
+        Plan firstGymPlan = repository.save("Plan de Jaime", 30);
+        PlanRepository secondGym = secondaryRepository();
+        secondGym.save("Plan de Ana", 7);
+        int resourcesBeforeLogin = fixture.resourceCount();
+
+        onFxThread(() -> {
+            GimnasioApplication app = new GimnasioApplication();
+            Stage stage = new Stage();
+            try {
+                app.start(stage);
+                assertNull(stage.getScene().lookup("#plansButton"));
+                assertNotNull(stage.getScene().lookup("#loginButton"));
+                assertNull(readField(app, "session"));
+                assertEquals(resourcesBeforeLogin, fixture.resourceCount(),
+                        "La pantalla inicial no debe consultar datos de ningún gimnasio.");
+
+                ((TextField) stage.getScene().lookup("#usernameField")).setText("jaime");
+                ((TextField) stage.getScene().lookup("#passwordField")).setText("clave-principal-larga");
+                ((Button) stage.getScene().lookup("#loginButton")).fire();
+                assertNotNull(readField(app, "session"));
+                assertEquals("jaime · Gimnasio Principal",
+                        ((Label) stage.getScene().lookup("#currentSessionLabel")).getText());
+
+                Button oldPlansButton = (Button) stage.getScene().lookup("#plansButton");
+                oldPlansButton.fire();
+                TableView<Plan> firstTable = (TableView<Plan>) stage.getScene().lookup("#plansTable");
+                assertEquals(List.of("Plan de Jaime"),
+                        firstTable.getItems().stream().map(Plan::getName).toList());
+
+                ((Button) stage.getScene().lookup("#logoutButton")).fire();
+                assertNull(readField(app, "session"));
+                assertNull(stage.getScene().lookup("#plansButton"));
+                assertNotNull(stage.getScene().lookup("#loginButton"));
+                assertTrue(oldPlansButton.isDisabled());
+                int resourcesAfterLogout = fixture.resourceCount();
+                oldPlansButton.setDisable(false);
+                oldPlansButton.fire();
+                assertEquals(resourcesAfterLogout, fixture.resourceCount(),
+                        "Una vista anterior no debe consultar PostgreSQL después de salir.");
+
+                ((TextField) stage.getScene().lookup("#usernameField")).setText("ana");
+                ((TextField) stage.getScene().lookup("#passwordField")).setText("clave-secundaria-larga");
+                ((Button) stage.getScene().lookup("#loginButton")).fire();
+                assertEquals("ana · Gimnasio Secundario",
+                        ((Label) stage.getScene().lookup("#currentSessionLabel")).getText());
+                ((Button) stage.getScene().lookup("#plansButton")).fire();
+                TableView<Plan> secondTable = (TableView<Plan>) stage.getScene().lookup("#plansTable");
+                assertEquals(List.of("Plan de Ana"),
+                        secondTable.getItems().stream().map(Plan::getName).toList());
+
+                // Incluso si llega un registro ajeno a la tabla, su cambio queda restringido por gimnasio.
+                secondTable.getItems().add(firstGymPlan);
+                secondTable.getSelectionModel().select(firstGymPlan);
+                ((Button) stage.getScene().lookup("#deactivateButton")).fire();
+                assertEquals("No se encontró el plan en el gimnasio actual.",
+                        ((Label) stage.getScene().lookup("#feedbackLabel")).getText());
+            } finally {
+                stage.close();
+            }
+        });
+
+        assertTrue(repository.findAll().getFirst().isActive());
+        fixture.assertResourcesClosed();
     }
 
     @Test
