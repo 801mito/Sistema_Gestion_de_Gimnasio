@@ -9,10 +9,53 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
 
+import gt.edu.gimnasio.model.Employee;
 import gt.edu.gimnasio.model.Gym;
 import gt.edu.gimnasio.repository.GymRepository;
 
 class GymContextTest {
+
+    @Test
+    void resolvesAuthenticatedEmployeesGymByIdWithoutUsingInitialGymName() throws SQLException {
+        AtomicInteger lookups = new AtomicInteger();
+        Employee employee = new Employee(5, 73, "Gimnasio Secundario", "jaime",
+                true, true, LocalDateTime.now());
+        GymContext context = new GymContext(new GymRepository() {
+            @Override
+            public Optional<Gym> findById(int id) {
+                assertEquals(73, id);
+                lookups.incrementAndGet();
+                return Optional.of(new Gym(id, "Gimnasio Secundario", true, LocalDateTime.now()));
+            }
+
+            @Override
+            public Optional<Gym> findByName(String name) {
+                fail("El contexto autenticado no debe usar el gimnasio fijo.");
+                return Optional.empty();
+            }
+        }, employee);
+
+        assertEquals(73, context.getCurrentGymId());
+        assertEquals(73, context.getCurrentGymId());
+        assertEquals(1, lookups.get());
+    }
+
+    @Test
+    void rejectsUnavailableAuthenticatedGymAndInactiveAccounts() {
+        Employee employee = new Employee(5, 73, "Gimnasio Secundario", "jaime",
+                true, true, LocalDateTime.now());
+        GymContext context = new GymContext(new GymRepository() {
+            @Override
+            public Optional<Gym> findById(int id) {
+                return Optional.of(new Gym(id, "Gimnasio Secundario", false, LocalDateTime.now()));
+            }
+        }, employee);
+        assertThrows(IllegalStateException.class, context::getCurrentGymId);
+
+        assertThrows(IllegalArgumentException.class, () -> new GymContext(
+                new Employee(5, 73, "Gimnasio Secundario", "jaime",
+                        false, true, LocalDateTime.now())));
+    }
 
     @Test
     void resolvesInitialGymByNameAndCachesItsActualId() throws SQLException {

@@ -17,6 +17,11 @@ public class GymRepository {
             FROM gimnasio
             WHERE nombre = ?
             """;
+    private static final String FIND_BY_ID_SQL = """
+            SELECT gimnasio_id, nombre, gimnasio_activo, gimnasio_creado_en
+            FROM gimnasio
+            WHERE gimnasio_id = ?
+            """;
 
     /** Busca un gimnasio por su nombre, sin asumir el valor de su ID. */
     public Optional<Gym> findByName(String name) throws SQLException {
@@ -25,6 +30,26 @@ public class GymRepository {
 
             statement.setString(1, name);
 
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(new Gym(
+                            resultSet.getInt("gimnasio_id"),
+                            resultSet.getString("nombre"),
+                            resultSet.getBoolean("gimnasio_activo"),
+                            resultSet.getTimestamp("gimnasio_creado_en").toLocalDateTime()));
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    /** Resuelve el gimnasio de una cuenta autenticada por su ID, nunca por un selector. */
+    public Optional<Gym> findById(int id) throws SQLException {
+        try (Connection connection = DatabaseConnection.openConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_ID_SQL)) {
+
+            statement.setInt(1, id);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     return Optional.of(new Gym(

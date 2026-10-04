@@ -34,6 +34,35 @@ se propagan como `SQLException` para tratarlos como problemas de infraestructura
 no como credenciales incorrectas. La llamada recibe un `char[]`; quien llama
 debe borrarlo cuando ya no lo necesite y no debe registrarlo en logs.
 
+## Preparar el primer empleado (avance de la issue #64)
+
+Tras aplicar `V1_2__crear_empleados.sql` en **una base de prueba o instalación
+elegida conscientemente**, se puede crear la primera cuenta de cada gimnasio
+activo desde una terminal local. Esta herramienta no crea un gimnasio, no usa
+contraseña predeterminada, no recibe la clave por argumentos y no permite una
+segunda cuenta inicial para el mismo gimnasio. No ejecutar la migración ni esta
+herramienta sobre la base habitual sólo para correr las pruebas automatizadas.
+
+Con `DB_URL`, `DB_USER` y `DB_PASSWORD` configurados para la base elegida:
+
+```powershell
+mvn -q "-DskipTests" package
+mvn -q "-DincludeScope=runtime" dependency:build-classpath "-Dmdep.outputFile=target/runtime-classpath.txt"
+$runtimeClasspath = (Get-Content -LiteralPath target/runtime-classpath.txt -Raw).Trim()
+java -cp "target/classes;$runtimeClasspath" gt.edu.gimnasio.app.EmployeeBootstrap
+```
+
+La herramienta muestra el destino de la base sin parámetros de conexión y pide
+el nombre exacto de un gimnasio existente, usuario, contraseña y confirmación
+interactiva (`CREAR`). La clave
+no se imprime ni queda en la línea de comandos. Debe usarse en una terminal
+interactiva real; sin ella, se cancela. El acceso a esta herramienta y a las
+credenciales de PostgreSQL debe limitarse a quien administra la instalación.
+
+`GymContext` ya puede construirse con el `Employee` devuelto por la
+autenticación y resolver su gimnasio por ID. `MainController` admite recibir
+ese contexto compartido, pero la aplicación todavía no lo conecta al login.
+
 ## Pruebas
 
 Las pruebas unitarias del hash se ejecutan con `mvn clean verify`, sin base de
@@ -48,8 +77,8 @@ del empleado, hash inválido y cierre de recursos JDBC incluso ante fallos SQL.
 
 ## Limitaciones actuales
 
-- No existe todavía pantalla de login, cierre de sesión ni aprovisionamiento
-  administrativo de empleados. La aplicación JavaFX continúa usando
+- No existe todavía pantalla de login ni cierre de sesión. El aprovisionamiento
+  inicial es una herramienta local, no un panel administrativo. JavaFX continúa usando
   `Gimnasio Principal` mediante `GymContext`; el servicio de autenticación aún
   no controla las pantallas ni los repositorios de los módulos.
 - No hay control de intentos repetidos, bloqueo temporal, auditoría de login ni

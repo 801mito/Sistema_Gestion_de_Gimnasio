@@ -2,6 +2,7 @@ package gt.edu.gimnasio.controller;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -13,7 +14,15 @@ import gt.edu.gimnasio.service.GymContext;
 /** Controla la navegación de los módulos principales de la aplicación. */
 public class MainController {
 
-    private final GymContext gymContext = new GymContext();
+    private final GymContext gymContext;
+
+    public MainController() {
+        this(new GymContext());
+    }
+
+    public MainController(GymContext gymContext) {
+        this.gymContext = Objects.requireNonNull(gymContext);
+    }
 
     @FXML
     private VBox contentArea;
