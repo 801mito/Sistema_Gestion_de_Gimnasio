@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import gt.edu.gimnasio.model.Employee;
+import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.PasswordHasher;
 
 /** Primera tanda de #61: esquema, hash y consultas, sin pantalla de login. */
@@ -31,6 +32,29 @@ class EmployeeRepositoryIT {
         if (fixture != null) {
             fixture.close();
         }
+    }
+
+    @Test
+    void createsOnlyTheFirstEmployeeOfEachActiveGym() throws Exception {
+        int first = repository.createFirstForGym(41, "jaime", "primera-clave-larga".toCharArray());
+        assertEquals(41, repository.findByUsername("jaime").orElseThrow().getEmployee().getGymId());
+        assertThrows(IllegalStateException.class,
+                () -> repository.createFirstForGym(41, "otro", "segunda-clave-larga".toCharArray()));
+        int second = repository.createFirstForGym(73, "ana", "tercera-clave-larga".toCharArray());
+        assertNotEquals(first, second);
+        Employee secondaryEmployee = repository.findByUsername("ana").orElseThrow().getEmployee();
+        assertEquals(73, new GymContext(secondaryEmployee).getCurrentGymId());
+        assertEquals(2, employeeCount());
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    void rejectsBootstrapWhenGymIsInactiveWithoutCreatingAccount() throws Exception {
+        fixture.execute("UPDATE gimnasio SET gimnasio_activo = FALSE WHERE gimnasio_id = 73");
+        assertThrows(IllegalStateException.class,
+                () -> repository.createFirstForGym(73, "ana", "tercera-clave-larga".toCharArray()));
+        assertEquals(0, employeeCount());
+        fixture.assertResourcesClosed();
     }
 
     @Test

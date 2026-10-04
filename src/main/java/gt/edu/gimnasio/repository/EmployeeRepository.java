@@ -30,6 +30,12 @@ public class EmployeeRepository {
             JOIN gimnasio g ON g.gimnasio_id = e.gimnasio_id
             WHERE e.usuario = ?
             """;
+    private static final String LOCK_GYM_SQL = """
+            SELECT gimnasio_activo FROM gimnasio WHERE gimnasio_id = ? FOR UPDATE
+            """;
+    private static final String HAS_EMPLOYEE_SQL = """
+            SELECT EXISTS (SELECT 1 FROM empleado WHERE gimnasio_id = ?)
+            """;
 
     private final PasswordHasher passwordHasher;
 
@@ -49,20 +55,65 @@ public class EmployeeRepository {
         String normalized = normalizeUsername(username);
         String passwordHash = passwordHasher.hash(password);
 
-        try (Connection connection = DatabaseConnection.openConnection();
-             PreparedStatement statement = connection.prepareStatement(SAVE_SQL)) {
+        try (Connection connection = DatabaseConnection.openConnection()) {
+            return insert(connection, gymId, normalized, passwordHash);
+        }
+    }
 
+    /** Crea sólo la primera cuenta de un gimnasio activo en una transacción. */
+    public int createFirstForGym(int gymId, String username, char[] password) throws SQLException {
+        if (gymId <= 0) {
+            throw new IllegalArgumentException("El gimnasio debe ser válido.");
+        }
+        String normalized = normalizeUsername(username);
+        String passwordHash = passwordHasher.hash(password);
+
+        try (Connection connection = DatabaseConnection.openConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                try (PreparedStatement lock = connection.prepareStatement(LOCK_GYM_SQL)) {
+                    lock.setInt(1, gymId);
+                    try (ResultSet result = lock.executeQuery()) {
+                        if (!result.next() || !result.getBoolean("gimnasio_activo")) {
+                            throw new IllegalStateException("El gimnasio no existe o está inactivo.");
+                        }
+                    }
+                }
+                try (PreparedStatement check = connection.prepareStatement(HAS_EMPLOYEE_SQL)) {
+                    check.setInt(1, gymId);
+                    try (ResultSet result = check.executeQuery()) {
+                        result.next();
+                        if (result.getBoolean(1)) {
+                            throw new IllegalStateException("Este gimnasio ya tiene una cuenta de empleado.");
+                        }
+                    }
+                }
+                int employeeId = insert(connection, gymId, normalized, passwordHash);
+                connection.commit();
+                return employeeId;
+            } catch (SQLException | RuntimeException exception) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackFailure) {
+                    exception.addSuppressed(rollbackFailure);
+                }
+                throw exception;
+            }
+        }
+    }
+
+    private int insert(Connection connection, int gymId, String username, String passwordHash)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(SAVE_SQL)) {
             statement.setInt(1, gymId);
-            statement.setString(2, normalized);
+            statement.setString(2, username);
             statement.setString(3, passwordHash);
-
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     return resultSet.getInt("empleado_id");
                 }
             }
         }
-
         throw new SQLException("PostgreSQL no devolvió el empleado registrado.");
     }
 
