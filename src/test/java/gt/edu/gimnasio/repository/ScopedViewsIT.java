@@ -79,13 +79,27 @@ class ScopedViewsIT {
 
     @Test
     @SuppressWarnings("unchecked")
-    void loginLogoutAndSecondGymCannotReadOrChangeFirstGymPlans() throws Exception {
+    void loginLogoutAndSecondGymCannotReadOrChangeFirstGymData() throws Exception {
         EmployeeRepository accounts = new EmployeeRepository();
         accounts.save(41, "jaime", "clave-principal-larga".toCharArray());
         accounts.save(73, "ana", "clave-secundaria-larga".toCharArray());
         Plan firstGymPlan = repository.save("Plan de Jaime", 30);
         PlanRepository secondGym = secondaryRepository();
         secondGym.save("Plan de Ana", 7);
+        fixture.execute("""
+                INSERT INTO miembro (miembro_id, gimnasio_id, nombres, apellidos)
+                VALUES (301, 41, 'Jaime', 'Principal'), (401, 73, 'Ana', 'Secundaria');
+                INSERT INTO membresia (membresia_id, gimnasio_id, plan_id, miembro_id,
+                                       estado, fecha_inicio, fecha_fin)
+                SELECT 501, 41, plan_id, 301, 'ACTIVA', CURRENT_DATE - 7, CURRENT_DATE + 7
+                FROM plan WHERE gimnasio_id = 41;
+                INSERT INTO membresia (membresia_id, gimnasio_id, plan_id, miembro_id,
+                                       estado, fecha_inicio, fecha_fin)
+                SELECT 601, 73, plan_id, 401, 'ACTIVA', CURRENT_DATE - 7, CURRENT_DATE + 7
+                FROM plan WHERE gimnasio_id = 73;
+                INSERT INTO codigo_acceso (codigo_acceso_id, membresia_id, codigo)
+                VALUES (701, 501, 'GYM-PRIMARY701'), (801, 601, 'GYM-SECONDARY801');
+                """);
         int resourcesBeforeLogin = fixture.resourceCount();
 
         onFxThread(() -> {
@@ -100,6 +114,21 @@ class ScopedViewsIT {
                         "La pantalla inicial no debe consultar datos de ningún gimnasio.");
 
                 ((TextField) stage.getScene().lookup("#usernameField")).setText("jaime");
+                ((TextField) stage.getScene().lookup("#passwordField")).setText("clave-incorrecta");
+                ((Button) stage.getScene().lookup("#loginButton")).fire();
+                assertNull(stage.getScene().lookup("#plansButton"));
+                assertNull(readField(app, "session"));
+                String invalidCredentials = ((Label) stage.getScene().lookup("#feedbackLabel")).getText();
+                assertFalse(invalidCredentials.isBlank());
+
+                ((TextField) stage.getScene().lookup("#usernameField")).setText("desconocido");
+                ((TextField) stage.getScene().lookup("#passwordField")).setText("clave-incorrecta");
+                ((Button) stage.getScene().lookup("#loginButton")).fire();
+                assertEquals(invalidCredentials,
+                        ((Label) stage.getScene().lookup("#feedbackLabel")).getText());
+                assertNull(stage.getScene().lookup("#plansButton"));
+
+                ((TextField) stage.getScene().lookup("#usernameField")).setText("jaime");
                 ((TextField) stage.getScene().lookup("#passwordField")).setText("clave-principal-larga");
                 ((Button) stage.getScene().lookup("#loginButton")).fire();
                 assertNotNull(readField(app, "session"));
@@ -111,6 +140,20 @@ class ScopedViewsIT {
                 TableView<Plan> firstTable = (TableView<Plan>) stage.getScene().lookup("#plansTable");
                 assertEquals(List.of("Plan de Jaime"),
                         firstTable.getItems().stream().map(Plan::getName).toList());
+                ((Button) stage.getScene().lookup("#membersButton")).fire();
+                TableView<Member> firstMembers = (TableView<Member>) stage.getScene().lookup("#membersTable");
+                assertEquals(List.of("Jaime Principal"),
+                        firstMembers.getItems().stream().map(Member::getFullName).toList());
+                ((Button) stage.getScene().lookup("#membershipsButton")).fire();
+                TableView<Membership> firstMemberships =
+                        (TableView<Membership>) stage.getScene().lookup("#membershipsTable");
+                assertEquals(List.of(501), firstMemberships.getItems().stream().map(Membership::getId).toList());
+                ((Button) stage.getScene().lookup("#accessButton")).fire();
+                TableView<AccessCode> firstCodes =
+                        (TableView<AccessCode>) stage.getScene().lookup("#accessCodesTable");
+                assertEquals(List.of("GYM-PRIMARY701"),
+                        firstCodes.getItems().stream().map(AccessCode::getCode).toList());
+                AccessCode foreignCode = firstCodes.getItems().getFirst();
 
                 ((Button) stage.getScene().lookup("#logoutButton")).fire();
                 assertNull(readField(app, "session"));
@@ -139,12 +182,38 @@ class ScopedViewsIT {
                 ((Button) stage.getScene().lookup("#deactivateButton")).fire();
                 assertEquals("No se encontró el plan en el gimnasio actual.",
                         ((Label) stage.getScene().lookup("#feedbackLabel")).getText());
+
+                ((Button) stage.getScene().lookup("#membersButton")).fire();
+                TableView<Member> secondMembers = (TableView<Member>) stage.getScene().lookup("#membersTable");
+                assertEquals(List.of("Ana Secundaria"),
+                        secondMembers.getItems().stream().map(Member::getFullName).toList());
+                ((Button) stage.getScene().lookup("#membershipsButton")).fire();
+                TableView<Membership> secondMemberships =
+                        (TableView<Membership>) stage.getScene().lookup("#membershipsTable");
+                assertEquals(List.of(601), secondMemberships.getItems().stream().map(Membership::getId).toList());
+                ((Button) stage.getScene().lookup("#accessButton")).fire();
+                TableView<AccessCode> secondCodes =
+                        (TableView<AccessCode>) stage.getScene().lookup("#accessCodesTable");
+                assertEquals(List.of("GYM-SECONDARY801"),
+                        secondCodes.getItems().stream().map(AccessCode::getCode).toList());
+
+                TextField codeInput = (TextField) stage.getScene().lookup("#accessCodeField");
+                codeInput.setText("GYM-PRIMARY701");
+                ((Button) stage.getScene().lookup(".primary-button")).fire();
+                assertEquals("El código ingresado no existe.",
+                        ((Label) stage.getScene().lookup("#validationResultLabel")).getText());
+                secondCodes.getItems().add(foreignCode);
+                secondCodes.getSelectionModel().select(foreignCode);
+                ((Button) stage.getScene().lookup("#deactivateButton")).fire();
+                assertEquals("No se encontró el código de acceso en el gimnasio actual.",
+                        ((Label) stage.getScene().lookup("#feedbackLabel")).getText());
             } finally {
                 stage.close();
             }
         });
 
         assertTrue(repository.findAll().getFirst().isActive());
+        assertTrue(new AccessCodeRepository().findAll().getFirst().isActive());
         fixture.assertResourcesClosed();
     }
 
