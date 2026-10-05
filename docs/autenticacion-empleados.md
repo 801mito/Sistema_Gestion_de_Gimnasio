@@ -79,8 +79,10 @@ temporales en una base de pruebas separada; no usa las tablas habituales.
 Se verifican cuentas de dos gimnasios, usuario duplicado, contraseña errónea,
 usuario inexistente, cuenta inactiva, gimnasio inactivo, cambio de asociación
 del empleado, hash inválido y cierre de recursos JDBC incluso ante fallos SQL.
-Una prueba JavaFX adicional cubre login, aislamiento visual de planes, cierre
-de sesión, bloqueo de una vista anterior y nuevo login con otro gimnasio.
+Una prueba JavaFX adicional cubre credenciales inválidas, login, aislamiento
+de Miembros, Planes, Membresías y Accesos, cierre de sesión, bloqueo de la
+navegación anterior y nuevo login con otro gimnasio. También intenta modificar
+un plan y un código ajenos y verifica que permanezcan intactos.
 
 ## Limitaciones actuales
 
