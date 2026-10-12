@@ -2,13 +2,25 @@
 
 Esta carpeta contiene cambios que deben aplicarse sobre una base de datos existente y no se ejecutan automáticamente al iniciar la aplicación.
 
+## Versión 1.3: intentos por gimnasio (issue #36)
+
+`V1_3__aislar_intentos_por_gimnasio.sql` agrega `gimnasio_id` obligatorio a
+`intento_acceso`. Los intentos que ya tienen código reciben el gimnasio de su
+membresía. Los intentos antiguos sin código se asignan a `Gimnasio Principal`,
+el único gimnasio que existía cuando se registraron. Revisar un respaldo antes
+de ejecutar esta migración una sola vez después de V1_2. La aplicación aún no
+registra automáticamente los intentos; esa integración sigue en la próxima
+tanda de la #36.
+El modelo físico 1.1 para bases nuevas ya incluye esta columna; no se debe
+ejecutar V1_3 sobre una base creada directamente con ese modelo.
+
 ## Versión 1.2: cuentas de empleados (issue #61)
 
 `V1_2__crear_empleados.sql` crea la tabla `empleado` después del modelo 1.1.
 Cada cuenta tiene un único `gimnasio_id` obligatorio y un usuario único en toda
 la aplicación. La migración no crea cuentas ni contraseñas predeterminadas.
 Antes de aplicarla a la base habitual, realizar un respaldo y revisar la tanda;
-la aplicación JavaFX todavía no utiliza estas cuentas para iniciar sesión.
+la aplicación JavaFX utiliza estas cuentas para iniciar sesión.
 Las contraseñas se almacenan como hashes PBKDF2-HMAC-SHA-256 con sal aleatoria,
 no como texto plano.
 
