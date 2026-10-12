@@ -10,6 +10,7 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TableColumn;
@@ -61,6 +62,12 @@ public class MembershipsController {
     private TableView<Membership> membershipsTable;
 
     @FXML
+    private Button freezeButton;
+
+    @FXML
+    private Button reactivateButton;
+
+    @FXML
     private TableColumn<Membership, Number> idColumn;
 
     @FXML
@@ -93,6 +100,8 @@ public class MembershipsController {
                 cell.getValue().getEndDate().format(DATE_FORMATTER)));
 
         membershipsTable.setPlaceholder(new Label("No hay membresías registradas todavía."));
+        membershipsTable.getSelectionModel().selectedItemProperty().addListener(
+                (observable, previous, selected) -> updateStatusButtons(selected));
         memberComboBox.setConverter(new javafx.util.StringConverter<>() {
             @Override
             public String toString(Member member) {
@@ -129,10 +138,12 @@ public class MembershipsController {
             Plan plan = planComboBox.getValue();
             LocalDate startDate = startDatePicker.getValue();
             String accessCode = membershipService.assignMembership(member, plan, startDate);
-            loadMemberships();
+            boolean refreshed = loadMemberships();
             clearForm();
-            showFeedback("Membresía asignada correctamente a " + member.getFullName()
-                    + ". Código generado: " + accessCode + ".", true);
+            if (refreshed) {
+                showFeedback("Membresía asignada correctamente a " + member.getFullName()
+                        + ". Código generado: " + accessCode + ".", true);
+            }
         } catch (MembershipValidationException exception) {
             showFeedback(exception.getMessage(), false);
         } catch (IllegalStateException exception) {
@@ -142,14 +153,58 @@ public class MembershipsController {
         }
     }
 
-    private void loadMemberships() {
+    @FXML
+    private void freezeMembership() {
+        changeMembershipStatus(true);
+    }
+
+    @FXML
+    private void reactivateMembership() {
+        changeMembershipStatus(false);
+    }
+
+    private void changeMembershipStatus(boolean freeze) {
+        Membership selected = membershipsTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showFeedback("Selecciona una membresía.", false);
+            return;
+        }
+        try {
+            if (freeze) {
+                membershipService.freeze(selected.getId());
+            } else {
+                membershipService.reactivate(selected.getId());
+            }
+            if (loadMemberships()) {
+                showFeedback(freeze ? "Membresía congelada correctamente."
+                        : "Membresía reactivada correctamente.", true);
+            }
+        } catch (MembershipValidationException exception) {
+            if (loadMemberships()) {
+                showFeedback(exception.getMessage(), false);
+            }
+        } catch (SQLException | IllegalStateException exception) {
+            showFeedback("No fue posible cambiar el estado de la membresía. Verifica PostgreSQL.", false);
+        }
+    }
+
+    private void updateStatusButtons(Membership selected) {
+        freezeButton.setDisable(selected == null || !"ACTIVA".equals(selected.getStatus()));
+        reactivateButton.setDisable(selected == null || !"CONGELADA".equals(selected.getStatus()));
+    }
+
+    private boolean loadMemberships() {
         try {
             List<Membership> memberships = membershipRepository.findAll();
             membershipsTable.setItems(FXCollections.observableArrayList(memberships));
+            updateStatusButtons(null);
             showFeedback("");
+            return true;
         } catch (SQLException | IllegalStateException exception) {
             membershipsTable.setItems(FXCollections.observableArrayList());
+            updateStatusButtons(null);
             showFeedback("No fue posible cargar las membresías. Configura la conexión a PostgreSQL.");
+            return false;
         }
     }
 

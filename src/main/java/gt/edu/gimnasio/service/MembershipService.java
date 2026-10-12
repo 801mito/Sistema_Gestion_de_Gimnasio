@@ -29,6 +29,57 @@ public class MembershipService {
         return startDate.plusDays(plan.getDurationDays() - 1L);
     }
 
+    public void freeze(int membershipId) throws SQLException, MembershipValidationException {
+        transition(membershipId, "ACTIVA", "CONGELADA");
+    }
+
+    public void reactivate(int membershipId) throws SQLException, MembershipValidationException {
+        transition(membershipId, "CONGELADA", "ACTIVA");
+    }
+
+    private void transition(int membershipId, String expected, String next)
+            throws SQLException, MembershipValidationException {
+        int gymId = membershipRepository.currentGymId();
+        try (Connection connection = DatabaseConnection.openConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                if (!membershipRepository.isGymActive(connection, gymId)) {
+                    throw new MembershipValidationException("El gimnasio actual ya no está disponible.");
+                }
+                int memberId = membershipRepository.memberIdForStatus(connection, gymId, membershipId);
+                if (memberId == 0 || !membershipRepository.memberExists(connection, gymId, memberId)) {
+                    throw new MembershipValidationException("No se encontró la membresía en el gimnasio actual.");
+                }
+                MembershipRepository.StatusData state = membershipRepository.lockStatus(connection, gymId, membershipId);
+                if (state == null || state.memberId() != memberId) {
+                    throw new MembershipValidationException("No se encontró la membresía en el gimnasio actual.");
+                }
+                if (!expected.equals(state.status())) {
+                    throw new MembershipValidationException("La membresía ya no está en el estado requerido.");
+                }
+                if ("ACTIVA".equals(next)) {
+                    if (LocalDate.now().isAfter(state.endDate())) {
+                        throw new MembershipValidationException("No se puede reactivar una membresía cuya fecha final ya pasó.");
+                    }
+                    if (membershipRepository.hasActiveMembership(connection, gymId, memberId)) {
+                        throw new MembershipValidationException("El miembro ya tiene otra membresía activa.");
+                    }
+                }
+                if (!membershipRepository.changeStatus(connection, gymId, membershipId, expected, next)) {
+                    throw new MembershipValidationException("La membresía cambió mientras se procesaba la solicitud.");
+                }
+                connection.commit();
+            } catch (SQLException | MembershipValidationException | RuntimeException exception) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackFailure) {
+                    exception.addSuppressed(rollbackFailure);
+                }
+                throw exception;
+            }
+        }
+    }
+
     /** Valida y asigna una membresía activa a un miembro. */
     public String assignMembership(Member member, Plan plan, LocalDate startDate)
             throws MembershipValidationException, SQLException {

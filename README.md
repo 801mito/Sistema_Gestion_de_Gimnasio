@@ -97,6 +97,11 @@ La asignación y la generación del código permanecen en una sola transacción:
 si falla el código, se revierte también la membresía. Ver
 [la verificación de Membresías](docs/avance-membresias-multitenant.md).
 
+La #35 permite congelar y reactivar una membresía desde su tabla sin cambiar
+las fechas ni el estado del código de acceso. Un código activo no autoriza la
+entrada mientras la membresía esté congelada. Ver
+[las reglas de estados de membresías](docs/estados-membresias.md).
+
 La #59 filtra los códigos y la validación de acceso por el gimnasio actual a
 través de la membresía asociada. Un código de otro gimnasio no aparece, no
 puede activarse o desactivarse por ID y se rechaza igual que uno inexistente.

@@ -64,6 +64,22 @@ public class MembershipRepository {
             VALUES (?, ?, ?, 'ACTIVA', ?, ?)
             """;
 
+    private static final String FIND_MEMBER_FOR_STATUS_SQL = """
+            SELECT miembro_id FROM membresia WHERE gimnasio_id = ? AND membresia_id = ?
+            """;
+
+    private static final String LOCK_STATUS_SQL = """
+            SELECT miembro_id, estado, fecha_fin FROM membresia
+            WHERE gimnasio_id = ? AND membresia_id = ? FOR UPDATE
+            """;
+
+    private static final String CHANGE_STATUS_SQL = """
+            UPDATE membresia SET estado = ?
+            WHERE gimnasio_id = ? AND membresia_id = ? AND estado = ?
+            """;
+
+    public record StatusData(int memberId, String status, java.time.LocalDate endDate) { }
+
     private final GymContext gymContext;
 
     public MembershipRepository() {
@@ -109,6 +125,39 @@ public class MembershipRepository {
     /** Comparte el mismo contexto con los servicios que operan esta membresía. */
     public GymContext getGymContext() {
         return gymContext;
+    }
+
+    /** Resuelve primero el miembro para mantener el mismo orden de bloqueos que la asignación. */
+    public int memberIdForStatus(Connection connection, int gymId, int membershipId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(FIND_MEMBER_FOR_STATUS_SQL)) {
+            statement.setInt(1, gymId);
+            statement.setInt(2, membershipId);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? result.getInt(1) : 0;
+            }
+        }
+    }
+
+    public StatusData lockStatus(Connection connection, int gymId, int membershipId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(LOCK_STATUS_SQL)) {
+            statement.setInt(1, gymId);
+            statement.setInt(2, membershipId);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? new StatusData(result.getInt("miembro_id"),
+                        result.getString("estado"), result.getObject("fecha_fin", java.time.LocalDate.class)) : null;
+            }
+        }
+    }
+
+    public boolean changeStatus(Connection connection, int gymId, int membershipId,
+                                String expected, String next) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(CHANGE_STATUS_SQL)) {
+            statement.setString(1, next);
+            statement.setInt(2, gymId);
+            statement.setInt(3, membershipId);
+            statement.setString(4, expected);
+            return statement.executeUpdate() == 1;
+        }
     }
 
     /** Revalida el gimnasio en la misma transacción, incluso si el contexto estaba en caché. */
