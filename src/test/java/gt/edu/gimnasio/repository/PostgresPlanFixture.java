@@ -91,6 +91,9 @@ final class PostgresPlanFixture implements AutoCloseable {
                             """);
                 }
                 statement.execute(readProjectFile("database/migrations/V1_2__crear_empleados.sql"));
+                if (migrateLegacyModel) {
+                    statement.execute(readProjectFile("database/migrations/V1_3__aislar_intentos_por_gimnasio.sql"));
+                }
             }
             DriverManager.registerDriver(driver);
             registered = true;

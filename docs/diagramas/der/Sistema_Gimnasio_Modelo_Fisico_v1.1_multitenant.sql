@@ -99,6 +99,7 @@ create index TIENE_CODIGO_FK on CODIGO_ACCESO (MEMBRESIA_ID);
 /*==============================================================*/
 create table INTENTO_ACCESO (
    INTENTO_ACCESO_ID    SERIAL               not null,
+   GIMNASIO_ID          INT4                 not null,
    CODIGO_ACCESO_ID     INT4                 null,
    RESULTADO            VARCHAR(12)          not null
       constraint CKC_RESULTADO_INTENTO_ check (RESULTADO in ('AUTORIZADO','RECHAZADO') and RESULTADO = upper(RESULTADO)),
@@ -108,6 +109,7 @@ create table INTENTO_ACCESO (
 );
 
 create index SE_UTILIZA_EN_FK on INTENTO_ACCESO (CODIGO_ACCESO_ID);
+create index IX_INTENTO_GIMNASIO_FECHA on INTENTO_ACCESO (GIMNASIO_ID, FECHA_HORA desc, INTENTO_ACCESO_ID desc);
 
 /*==============================================================*/
 /* Relaciones                                                   */
@@ -146,6 +148,11 @@ alter table CODIGO_ACCESO
 alter table INTENTO_ACCESO
    add constraint FK_INTENTO__SE_UTILIZ_CODIGO_A foreign key (CODIGO_ACCESO_ID)
       references CODIGO_ACCESO (CODIGO_ACCESO_ID)
+      on delete restrict on update restrict;
+
+alter table INTENTO_ACCESO
+   add constraint FK_INTENTO_GIMNASIO foreign key (GIMNASIO_ID)
+      references GIMNASIO (GIMNASIO_ID)
       on delete restrict on update restrict;
 
 commit;
