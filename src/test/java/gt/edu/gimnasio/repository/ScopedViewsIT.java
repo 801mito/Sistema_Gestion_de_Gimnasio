@@ -384,6 +384,41 @@ class ScopedViewsIT {
 
     @Test
     @SuppressWarnings("unchecked")
+    void membershipButtonsFreezeAndReactivateSelectedRow() throws Exception {
+        fixture.execute("""
+                INSERT INTO plan (plan_id, gimnasio_id, nombre, duracion_dias)
+                VALUES (101, 41, 'Mensual', 30);
+                INSERT INTO miembro (miembro_id, gimnasio_id, nombres, apellidos)
+                VALUES (301, 41, 'Jaime', 'Principal');
+                INSERT INTO membresia (membresia_id, gimnasio_id, plan_id, miembro_id,
+                                       estado, fecha_inicio, fecha_fin)
+                VALUES (501, 41, 101, 301, 'ACTIVA', CURRENT_DATE - 7, CURRENT_DATE + 7);
+                """);
+        onFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/memberships-view.fxml"));
+            loader.load();
+            TableView<Membership> table = (TableView<Membership>) loader.getNamespace().get("membershipsTable");
+            Button freeze = (Button) loader.getNamespace().get("freezeButton");
+            Button reactivate = (Button) loader.getNamespace().get("reactivateButton");
+            Label feedback = (Label) loader.getNamespace().get("feedbackLabel");
+            assertTrue(freeze.isDisabled());
+            assertTrue(reactivate.isDisabled());
+            table.getSelectionModel().selectFirst();
+            assertFalse(freeze.isDisabled());
+            freeze.fire();
+            assertEquals("CONGELADA", table.getItems().getFirst().getStatus());
+            assertTrue(feedback.getText().contains("congelada correctamente"));
+            table.getSelectionModel().selectFirst();
+            assertFalse(reactivate.isDisabled());
+            reactivate.fire();
+            assertEquals("ACTIVA", table.getItems().getFirst().getStatus());
+            assertTrue(feedback.getText().contains("reactivada correctamente"));
+        });
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void memberTableAndMembershipHistoryAndOptionsUseInjectedGymContext() throws Exception {
         seedMembersForRead();
         fixture.execute("""

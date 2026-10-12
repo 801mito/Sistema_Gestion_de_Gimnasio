@@ -38,6 +38,12 @@
         <Label fx:id="endDateLabel" styleClass="card-message" text="Selecciona un plan y una fecha de inicio." />
     </VBox>
     <Label fx:id="feedbackLabel" managed="false" visible="false" wrapText="true" />
+    <HBox spacing="10.0">
+        <Button fx:id="freezeButton" disable="true" mnemonicParsing="false" onAction="#freezeMembership"
+                styleClass="secondary-button" text="Congelar membresía" />
+        <Button fx:id="reactivateButton" disable="true" mnemonicParsing="false" onAction="#reactivateMembership"
+                styleClass="primary-button" text="Reactivar membresía" />
+    </HBox>
     <TableView fx:id="membershipsTable" prefHeight="400.0" styleClass="memberships-table" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="idColumn" prefWidth="70.0" text="ID" />
