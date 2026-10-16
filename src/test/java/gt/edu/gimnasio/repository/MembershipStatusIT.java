@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import gt.edu.gimnasio.model.Gym;
 import gt.edu.gimnasio.model.Membership;
+import gt.edu.gimnasio.model.AccessAttempt;
 import gt.edu.gimnasio.service.AccessValidationService;
 import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.MembershipService;
@@ -74,6 +75,37 @@ class MembershipStatusIT {
     }
 
     @Test
+    void expirationOfActiveMembershipKeepsHistoryAndLogsRejectedAccess() throws Exception {
+        service.expire(501);
+
+        Membership expired = repository.findAll().stream()
+                .filter(membership -> membership.getId() == 501).findFirst().orElseThrow();
+        assertEquals("VENCIDA", expired.getStatus());
+        assertEquals(1, repository.findAll().size());
+        var deniedAccess = access.validate("GYM-PRIMARY701");
+        assertFalse(deniedAccess.isAuthorized());
+        assertEquals("La membresía está vencida.", deniedAccess.getReason());
+
+        AccessAttempt attempt = new AccessAttemptRepository(gymContext).findAll().getFirst();
+        assertEquals("RECHAZADO", attempt.result());
+        assertEquals("La membresía está vencida.", attempt.reason());
+        assertEquals("GYM-PRIMARY701", attempt.code());
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    void expirationAlsoAcceptsFrozenMembershipAndExpiredMembershipCannotBeReactivated() throws Exception {
+        fixture.execute("UPDATE membresia SET estado = 'CONGELADA' WHERE membresia_id = 501");
+        service.expire(501);
+
+        assertEquals("VENCIDA", repository.findAll().getFirst().getStatus());
+        assertThrows(MembershipValidationException.class, () -> service.reactivate(501));
+        assertThrows(MembershipValidationException.class, () -> service.expire(501));
+        assertEquals("VENCIDA", repository.findAll().getFirst().getStatus());
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
     void rejectsForeignExpiredAndConflictingTransitionsWithoutChangingHistory() throws Exception {
         GymContext other = new GymContext(new GymRepository() {
             @Override
@@ -83,6 +115,7 @@ class MembershipStatusIT {
         });
         MembershipService secondary = new MembershipService(new MembershipRepository(other));
         assertThrows(MembershipValidationException.class, () -> secondary.freeze(501));
+        assertThrows(MembershipValidationException.class, () -> secondary.expire(501));
         assertEquals("ACTIVA", repository.findAll().getFirst().getStatus());
         assertThrows(MembershipValidationException.class, () -> service.reactivate(501));
 

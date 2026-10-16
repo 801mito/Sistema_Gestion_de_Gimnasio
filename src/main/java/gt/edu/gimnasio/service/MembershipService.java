@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.sql.Connection;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Set;
 
 import gt.edu.gimnasio.config.DatabaseConnection;
 import gt.edu.gimnasio.model.Member;
@@ -30,14 +31,19 @@ public class MembershipService {
     }
 
     public void freeze(int membershipId) throws SQLException, MembershipValidationException {
-        transition(membershipId, "ACTIVA", "CONGELADA");
+        transition(membershipId, Set.of("ACTIVA"), "CONGELADA");
     }
 
     public void reactivate(int membershipId) throws SQLException, MembershipValidationException {
-        transition(membershipId, "CONGELADA", "ACTIVA");
+        transition(membershipId, Set.of("CONGELADA"), "ACTIVA");
     }
 
-    private void transition(int membershipId, String expected, String next)
+    /** Marca como vencida una membresía activa o congelada sin borrarla del historial. */
+    public void expire(int membershipId) throws SQLException, MembershipValidationException {
+        transition(membershipId, Set.of("ACTIVA", "CONGELADA"), "VENCIDA");
+    }
+
+    private void transition(int membershipId, Set<String> allowedCurrentStates, String next)
             throws SQLException, MembershipValidationException {
         int gymId = membershipRepository.currentGymId();
         try (Connection connection = DatabaseConnection.openConnection()) {
@@ -54,7 +60,7 @@ public class MembershipService {
                 if (state == null || state.memberId() != memberId) {
                     throw new MembershipValidationException("No se encontró la membresía en el gimnasio actual.");
                 }
-                if (!expected.equals(state.status())) {
+                if (!allowedCurrentStates.contains(state.status())) {
                     throw new MembershipValidationException("La membresía ya no está en el estado requerido.");
                 }
                 if ("ACTIVA".equals(next)) {
@@ -65,7 +71,7 @@ public class MembershipService {
                         throw new MembershipValidationException("El miembro ya tiene otra membresía activa.");
                     }
                 }
-                if (!membershipRepository.changeStatus(connection, gymId, membershipId, expected, next)) {
+                if (!membershipRepository.changeStatus(connection, gymId, membershipId, state.status(), next)) {
                     throw new MembershipValidationException("La membresía cambió mientras se procesaba la solicitud.");
                 }
                 connection.commit();
