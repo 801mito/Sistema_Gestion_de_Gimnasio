@@ -22,13 +22,16 @@ class MembershipStatusIT {
     private MembershipRepository repository;
     private MembershipService service;
     private AccessValidationService access;
+    private GymContext gymContext;
 
     @BeforeEach
     void prepare() throws Exception {
         fixture = new PostgresPlanFixture(false);
-        repository = new MembershipRepository();
+        gymContext = new GymContext();
+        repository = new MembershipRepository(gymContext);
         service = new MembershipService(repository);
-        access = new AccessValidationService(new AccessCodeRepository());
+        access = new AccessValidationService(new AccessCodeRepository(gymContext),
+                new AccessAttemptRepository(gymContext));
         fixture.execute("""
                 INSERT INTO plan (plan_id, gimnasio_id, nombre, duracion_dias)
                 VALUES (101, 41, 'Mensual', 30), (201, 73, 'Semanal', 7);

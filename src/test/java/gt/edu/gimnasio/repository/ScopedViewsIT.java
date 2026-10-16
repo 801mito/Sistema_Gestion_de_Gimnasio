@@ -30,6 +30,7 @@ import gt.edu.gimnasio.model.Plan;
 import gt.edu.gimnasio.model.Member;
 import gt.edu.gimnasio.model.Membership;
 import gt.edu.gimnasio.model.AccessCode;
+import gt.edu.gimnasio.model.AccessAttempt;
 import gt.edu.gimnasio.model.Gym;
 import gt.edu.gimnasio.service.GymContext;
 import gt.edu.gimnasio.service.MemberService;
@@ -562,21 +563,41 @@ class ScopedViewsIT {
             loader.load();
             var controls = loader.getNamespace();
             TableView<AccessCode> table = (TableView<AccessCode>) controls.get("accessCodesTable");
+            TableView<AccessAttempt> history = (TableView<AccessAttempt>) controls.get("accessAttemptsTable");
             TextField input = (TextField) controls.get("accessCodeField");
             Label result = (Label) controls.get("validationResultLabel");
             Label feedback = (Label) controls.get("feedbackLabel");
+            Label sectionTitle = (Label) controls.get("tableSectionLabel");
             Button activate = (Button) controls.get("activateButton");
             Button deactivate = (Button) controls.get("deactivateButton");
-            Button validate = (Button) ((VBox) loader.getRoot()).lookup(".primary-button");
+            Button historyTab = (Button) controls.get("accessAttemptsTabButton");
+            Button validate = (Button) controls.get("validateButton");
 
             assertEquals(List.of(801), table.getItems().stream().map(AccessCode::getId).toList());
             input.setText("GYM-PRIMARY701");
             validate.fire();
             assertEquals("El código ingresado no existe.", result.getText());
+            assertEquals(1, history.getItems().size());
+            assertNull(history.getItems().getFirst().accessCodeId());
+            assertNull(history.getItems().getFirst().code());
             input.setText("GYM-SECONDARY801");
             validate.fire();
             assertTrue(result.getText().contains("Acceso autorizado"));
+            assertEquals(2, history.getItems().size());
+            assertEquals("GYM-SECONDARY801", history.getItems().stream()
+                    .filter(attempt -> attempt.accessCodeId() != null).findFirst().orElseThrow().code());
+            historyTab.fire();
+            assertEquals("Historial de intentos", sectionTitle.getText());
+            assertFalse(table.isVisible());
+            assertTrue(history.isVisible());
+            AccessAttempt unknownAttempt = history.getItems().stream()
+                    .filter(attempt -> attempt.accessCodeId() == null).findFirst().orElseThrow();
+            assertEquals("No reconocido", history.getColumns().getFirst()
+                    .getCellObservableValue(unknownAttempt).getValue());
+            assertEquals("Rechazado", history.getColumns().get(1)
+                    .getCellObservableValue(unknownAttempt).getValue());
 
+            ((Button) controls.get("accessCodesTabButton")).fire();
             table.getSelectionModel().selectFirst();
             deactivate.fire();
             assertFalse(table.getItems().getFirst().isActive());

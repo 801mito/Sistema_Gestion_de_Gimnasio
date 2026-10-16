@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import gt.edu.gimnasio.model.AccessCode;
+import gt.edu.gimnasio.model.AccessAttempt;
 import gt.edu.gimnasio.model.AccessValidationResult;
 import gt.edu.gimnasio.model.Gym;
 import gt.edu.gimnasio.service.AccessValidationService;
@@ -98,7 +99,7 @@ class AccessCodeRepositoryIT {
 
     @Test
     void validationRejectsForeignCodeExactlyLikeMissingCodeWithoutLeakingData() throws Exception {
-        AccessValidationService service = new AccessValidationService(repository);
+        AccessValidationService service = new AccessValidationService(repository, new AccessAttemptRepository(context));
         AccessValidationResult foreign = service.validate(" GYM-FOREIGN801 ");
         AccessValidationResult missing = service.validate("GYM-MISSING");
         assertFalse(foreign.isAuthorized());
@@ -109,14 +110,16 @@ class AccessCodeRepositoryIT {
         assertFalse(service.validate("GYM-OWN702").isAuthorized());
         assertTrue(service.validate("GYM-OWN702").getReason().contains("inactivo"));
         assertTrue(service.validate(" ").getReason().contains("Ingresa"));
-        assertTrue(new AccessValidationService(new AccessCodeRepository(secondaryGymContext()))
+        GymContext secondary = secondaryGymContext();
+        assertTrue(new AccessValidationService(new AccessCodeRepository(secondary),
+                new AccessAttemptRepository(secondary))
                 .validate("GYM-FOREIGN801").isAuthorized());
         fixture.assertResourcesClosed();
     }
 
     @Test
     void existingMembershipStatusAndDateRulesRemainInForce() throws Exception {
-        AccessValidationService service = new AccessValidationService(repository);
+        AccessValidationService service = new AccessValidationService(repository, new AccessAttemptRepository(context));
         fixture.execute("UPDATE membresia SET estado = 'CONGELADA' WHERE membresia_id = 501");
         assertTrue(service.validate("GYM-OWN701").getReason().contains("congelada"));
         fixture.execute("UPDATE membresia SET estado = 'ACTIVA', fecha_inicio = CURRENT_DATE + 1 "
@@ -125,6 +128,32 @@ class AccessCodeRepositoryIT {
         fixture.execute("UPDATE membresia SET fecha_inicio = CURRENT_DATE - 10, "
                 + "fecha_fin = CURRENT_DATE - 1 WHERE membresia_id = 501");
         assertTrue(service.validate("GYM-OWN701").getReason().contains("vencida"));
+        fixture.assertResourcesClosed();
+    }
+
+    @Test
+    void validationLogsEveryOutcomeAndDoesNotStoreUnrecognizedInput() throws Exception {
+        AccessAttemptRepository attempts = new AccessAttemptRepository(context);
+        AccessValidationService service = new AccessValidationService(repository, attempts);
+
+        assertTrue(service.validate("GYM-OWN701").isAuthorized());
+        assertFalse(service.validate("GYM-OWN702").isAuthorized());
+        assertFalse(service.validate("PRIVATE-UNRECOGNIZED-CODE").isAuthorized());
+        assertFalse(service.validate("   ").isAuthorized());
+
+        List<AccessAttempt> history = attempts.findAll();
+        assertEquals(4, history.size());
+        assertTrue(history.stream().anyMatch(attempt -> Integer.valueOf(701).equals(attempt.accessCodeId())
+                && attempt.result().equals("AUTORIZADO") && attempt.code().equals("GYM-OWN701")));
+        assertTrue(history.stream().anyMatch(attempt -> Integer.valueOf(702).equals(attempt.accessCodeId())
+                && attempt.result().equals("RECHAZADO") && attempt.reason().contains("inactivo")));
+        List<AccessAttempt> unrecognized = history.stream()
+                .filter(attempt -> attempt.accessCodeId() == null).toList();
+        assertEquals(2, unrecognized.size());
+        assertTrue(unrecognized.stream().allMatch(attempt -> attempt.code() == null));
+        assertFalse(history.stream().anyMatch(attempt -> "PRIVATE-UNRECOGNIZED-CODE".equals(attempt.code())
+                || attempt.reason().contains("PRIVATE-UNRECOGNIZED-CODE")));
+        assertTrue(new AccessAttemptRepository(secondaryGymContext()).findAll().isEmpty());
         fixture.assertResourcesClosed();
     }
 

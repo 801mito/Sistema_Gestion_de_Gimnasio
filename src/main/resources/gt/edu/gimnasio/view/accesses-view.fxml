@@ -7,6 +7,7 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox spacing="16.0" xmlns="http://javafx.com/javafx/21"
@@ -24,14 +25,22 @@
                 <Label styleClass="field-label" text="Código de acceso" />
                 <TextField fx:id="accessCodeField" maxWidth="1.7976931348623157E308" onAction="#validateAccess" promptText="Ej.: GYM-ABCD1234" />
             </VBox>
-            <Button mnemonicParsing="false" onAction="#validateAccess" styleClass="primary-button" text="Validar acceso" />
+            <Button fx:id="validateButton" mnemonicParsing="false" onAction="#validateAccess" styleClass="primary-button" text="Validar acceso" />
         </HBox>
         <Label fx:id="validationResultLabel" managed="false" visible="false" wrapText="true" />
     </VBox>
-    <Label styleClass="card-title" text="Códigos de acceso" />
     <HBox spacing="10.0">
+        <Button fx:id="accessCodesTabButton" mnemonicParsing="false" onAction="#showAccessCodes" styleClass="secondary-button" text="Ver códigos" />
+        <Button fx:id="accessAttemptsTabButton" mnemonicParsing="false" onAction="#showAccessAttempts" styleClass="secondary-button" text="Ver historial" />
+    </HBox>
+    <Label fx:id="tableSectionLabel" styleClass="card-title" text="Códigos de acceso" />
+    <HBox fx:id="codeActionsBox" spacing="10.0">
         <Button fx:id="activateButton" mnemonicParsing="false" onAction="#activateSelectedCode" styleClass="secondary-button" text="Activar código" />
         <Button fx:id="deactivateButton" mnemonicParsing="false" onAction="#deactivateSelectedCode" styleClass="danger-button" text="Desactivar código" />
+    </HBox>
+    <HBox fx:id="historyActionsBox" managed="false" visible="false" spacing="10.0">
+        <Region HBox.hgrow="ALWAYS" />
+        <Button mnemonicParsing="false" onAction="#refreshAccessAttempts" styleClass="secondary-button" text="Actualizar historial" />
     </HBox>
     <Label fx:id="feedbackLabel" managed="false" visible="false" wrapText="true" />
     <TableView fx:id="accessCodesTable" prefHeight="400.0" styleClass="access-codes-table" VBox.vgrow="ALWAYS">
@@ -42,6 +51,14 @@
             <TableColumn fx:id="codeColumn" prefWidth="180.0" text="Código" />
             <TableColumn fx:id="statusColumn" prefWidth="110.0" text="Estado" />
             <TableColumn fx:id="createdAtColumn" prefWidth="160.0" text="Fecha de creación" />
+        </columns>
+    </TableView>
+    <TableView fx:id="accessAttemptsTable" managed="false" visible="false" prefHeight="400.0" styleClass="access-codes-table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="attemptCodeColumn" prefWidth="175.0" text="Código" />
+            <TableColumn fx:id="attemptResultColumn" prefWidth="110.0" text="Resultado" />
+            <TableColumn fx:id="attemptReasonColumn" prefWidth="310.0" text="Motivo" />
+            <TableColumn fx:id="attemptDateColumn" prefWidth="155.0" text="Fecha y hora" />
         </columns>
     </TableView>
 </VBox>
