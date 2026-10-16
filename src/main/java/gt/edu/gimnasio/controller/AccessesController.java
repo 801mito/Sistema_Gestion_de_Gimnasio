@@ -4,9 +4,11 @@ import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import gt.edu.gimnasio.model.AccessAttempt;
 import gt.edu.gimnasio.model.AccessCode;
 import gt.edu.gimnasio.model.AccessValidationResult;
 import gt.edu.gimnasio.repository.AccessCodeNotFoundException;
+import gt.edu.gimnasio.repository.AccessAttemptRepository;
 import gt.edu.gimnasio.repository.AccessCodeRepository;
 import gt.edu.gimnasio.service.AccessValidationService;
 import gt.edu.gimnasio.service.GymContext;
@@ -19,6 +21,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 
 /** Controla la consulta de códigos de acceso generados para membresías. */
 public class AccessesController {
@@ -26,6 +29,7 @@ public class AccessesController {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final AccessCodeRepository accessCodeRepository;
+    private final AccessAttemptRepository accessAttemptRepository;
     private final AccessValidationService accessValidationService;
 
     public AccessesController() {
@@ -34,7 +38,8 @@ public class AccessesController {
 
     public AccessesController(GymContext gymContext) {
         accessCodeRepository = new AccessCodeRepository(gymContext);
-        accessValidationService = new AccessValidationService(accessCodeRepository);
+        accessAttemptRepository = new AccessAttemptRepository(gymContext);
+        accessValidationService = new AccessValidationService(accessCodeRepository, accessAttemptRepository);
     }
 
     @FXML private TextField accessCodeField;
@@ -46,6 +51,16 @@ public class AccessesController {
     @FXML private TableColumn<AccessCode, String> codeColumn;
     @FXML private TableColumn<AccessCode, String> statusColumn;
     @FXML private TableColumn<AccessCode, String> createdAtColumn;
+    @FXML private TableView<AccessAttempt> accessAttemptsTable;
+    @FXML private TableColumn<AccessAttempt, String> attemptCodeColumn;
+    @FXML private TableColumn<AccessAttempt, String> attemptResultColumn;
+    @FXML private TableColumn<AccessAttempt, String> attemptReasonColumn;
+    @FXML private TableColumn<AccessAttempt, String> attemptDateColumn;
+    @FXML private Label tableSectionLabel;
+    @FXML private HBox codeActionsBox;
+    @FXML private HBox historyActionsBox;
+    @FXML private Button accessCodesTabButton;
+    @FXML private Button accessAttemptsTabButton;
     @FXML private Label feedbackLabel;
     @FXML private Button activateButton;
     @FXML private Button deactivateButton;
@@ -60,11 +75,21 @@ public class AccessesController {
                 cell.getValue().isActive() ? "Activo" : "Inactivo"));
         createdAtColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(
                 cell.getValue().getCreatedAt().format(DATE_TIME_FORMATTER)));
+        attemptCodeColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(
+                cell.getValue().code() == null ? "No reconocido" : cell.getValue().code()));
+        attemptResultColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(
+                "AUTORIZADO".equals(cell.getValue().result()) ? "Autorizado" : "Rechazado"));
+        attemptReasonColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().reason()));
+        attemptDateColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(
+                cell.getValue().occurredAt().format(DATE_TIME_FORMATTER)));
         accessCodesTable.setPlaceholder(new Label("No hay códigos de acceso registrados todavía."));
+        accessAttemptsTable.setPlaceholder(new Label("No hay intentos de acceso registrados todavía."));
         accessCodesTable.getSelectionModel().selectedItemProperty().addListener(
                 (observable, previousSelection, selectedCode) -> updateActionButtons(selectedCode));
         updateActionButtons(null);
+        setTableView(false);
         loadAccessCodes();
+        loadAccessAttempts();
     }
 
     @FXML
@@ -82,9 +107,28 @@ public class AccessesController {
         try {
             AccessValidationResult result = accessValidationService.validate(accessCodeField.getText());
             showValidationResult(result.getReason(), result.isAuthorized());
+            loadAccessAttempts();
         } catch (SQLException | IllegalStateException exception) {
             showValidationResult("No fue posible validar el acceso. Verifica la conexión a PostgreSQL.", false);
+            loadAccessAttempts();
         }
+    }
+
+    @FXML
+    private void refreshAccessAttempts() {
+        loadAccessAttempts();
+    }
+
+    @FXML
+    private void showAccessCodes() {
+        setTableView(false);
+        loadAccessCodes();
+    }
+
+    @FXML
+    private void showAccessAttempts() {
+        setTableView(true);
+        loadAccessAttempts();
     }
 
     private void changeSelectedCodeStatus(boolean active) {
@@ -125,10 +169,37 @@ public class AccessesController {
         }
     }
 
+    private boolean loadAccessAttempts() {
+        try {
+            accessAttemptsTable.setItems(FXCollections.observableArrayList(accessAttemptRepository.findAll()));
+            return true;
+        } catch (SQLException | IllegalStateException exception) {
+            accessAttemptsTable.setItems(FXCollections.observableArrayList());
+            showFeedback("No fue posible cargar el historial de intentos. Verifica la conexión a PostgreSQL.", false);
+            return false;
+        }
+    }
+
     private void updateActionButtons(AccessCode selectedCode) {
         boolean codeSelected = selectedCode != null;
         activateButton.setDisable(!codeSelected || selectedCode.isActive());
         deactivateButton.setDisable(!codeSelected || !selectedCode.isActive());
+    }
+
+    private void setTableView(boolean showAttempts) {
+        tableSectionLabel.setText(showAttempts ? "Historial de intentos" : "Códigos de acceso");
+        accessCodesTable.setVisible(!showAttempts);
+        accessCodesTable.setManaged(!showAttempts);
+        accessAttemptsTable.setVisible(showAttempts);
+        accessAttemptsTable.setManaged(showAttempts);
+        codeActionsBox.setVisible(!showAttempts);
+        codeActionsBox.setManaged(!showAttempts);
+        historyActionsBox.setVisible(showAttempts);
+        historyActionsBox.setManaged(showAttempts);
+        accessCodesTabButton.getStyleClass().remove("navigation-button-active");
+        accessAttemptsTabButton.getStyleClass().remove("navigation-button-active");
+        (showAttempts ? accessAttemptsTabButton : accessCodesTabButton)
+                .getStyleClass().add("navigation-button-active");
     }
 
     private void showValidationResult(String message, boolean authorized) {
