@@ -93,8 +93,9 @@ un plan y un código ajenos y verifica que permanezcan intactos.
 - No hay control de intentos repetidos, bloqueo temporal, auditoría de login ni
   gestión de sesiones. Esos controles deberán definirse antes de uso real.
 - La aplicación de escritorio se conecta directamente a PostgreSQL con las
-  credenciales `DB_*`. Si esas credenciales tienen permisos amplios, el login
-  de Java no constituye una frontera segura entre gimnasios. **No utilizar
-  datos reales de varios gimnasios** hasta que el contexto autenticado se
-  conecte a todos los módulos y la base imponga permisos adecuados.
+  credenciales `DB_*`. El contexto autenticado se comparte con los módulos y sus
+  repositorios filtran por gimnasio, pero si las credenciales de PostgreSQL
+  tienen permisos amplios, el login de Java no constituye una frontera segura
+  frente al acceso directo a la base. Antes de usar datos reales de varios
+  gimnasios, deben definirse y aplicarse los permisos de base de datos adecuados.
 - No se introduce una API REST: el proyecto continúa con JavaFX y JDBC.

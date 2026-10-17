@@ -65,20 +65,21 @@ temporal quedó detenido.
 
 ### Comprobación manual opcional
 
-Con `DB_URL`, `DB_USER` y `DB_PASSWORD` configuradas en la misma terminal,
-ejecutar `mvn javafx:run`. En Membresías, el historial existente de Gimnasio
-Principal debe seguir visible. Para probar una asignación sin alterar datos
-reales, usar **una base y registros de prueba**: escoger allí un miembro sin
-membresía activa y un plan activo, asignar y comprobar que aparece en la tabla
-y se muestra el código. Un segundo intento para el mismo miembro debe indicar
-que ya tiene una membresía activa. Estas acciones persisten datos y no tienen
-rollback automático.
+Usa una base de pruebas con un empleado activo. Configura `DB_URL`, `DB_USER` y
+`DB_PASSWORD` para esa base en la misma terminal y ejecuta `mvn clean javafx:run`.
+Inicia sesión con el empleado de prueba. En Membresías, el historial del
+gimnasio de la cuenta debe estar visible. Para probar una asignación, escoger
+un miembro sin membresía activa y un plan activo, asignar y comprobar que aparece
+en la tabla y se muestra el código. Un segundo intento para el mismo miembro
+debe indicar que ya tiene una membresía activa. Estas acciones persisten datos
+y no tienen rollback automático.
 
 ## Límites pendientes
 
 Esta guía describe el alcance histórico de la #55. La lista,
 activación/desactivación y validación de códigos se aislaron posteriormente en
-[la #59](avance-accesos-multitenant.md). Los intentos de acceso aún no se
-registran en la aplicación. Tampoco hay autenticación ni selección autorizada
-de gimnasio. Por tanto, **no utilizar un segundo gimnasio con datos reales
-todavía**.
+[la #59](avance-accesos-multitenant.md). El registro y aislamiento de intentos
+se añadieron en la #36, y las cuentas de empleados y el contexto autenticado en
+las #61 y #64. Como la aplicación se conecta directamente a PostgreSQL, revisa
+[las limitaciones de autenticación](autenticacion-empleados.md) antes de usar
+datos reales de varios gimnasios.

@@ -7,12 +7,14 @@ las opciones de planes activos para asignar membresías se consultan por
 `gimnasio_id`. Registrar, editar, activar y desactivar planes también respetan
 ese contexto.
 
-Esta guía documenta el alcance de la #44. Posteriormente se aislaron
-[Miembros](avance-miembros-multitenant.md) y
-[Membresías](avance-membresias-multitenant.md). Todavía no hay selector de
-gimnasio ni inicio de sesión. Los códigos y su validación se aislaron después
-en [la #59](avance-accesos-multitenant.md); aún no se aíslan los intentos de
-acceso. No utilizar varios gimnasios con datos reales.
+Esta guía documenta el alcance histórico de la #44. Posteriormente se aislaron
+[Miembros](avance-miembros-multitenant.md),
+[Membresías](avance-membresias-multitenant.md) y
+[códigos e intentos de acceso](avance-accesos-multitenant.md); el inicio de
+sesión de empleados determina el gimnasio de la sesión. La limitación restante
+es que el cliente se conecta directamente a PostgreSQL; consulta
+[autenticación](autenticacion-empleados.md) antes de usar datos reales de varios
+gimnasios.
 
 ## Pruebas unitarias
 
@@ -115,14 +117,17 @@ El mismo perfil ejecuta además las pruebas añadidas durante las issues #45 y
 Los reportes quedan en `target/surefire-reports` y `target/failsafe-reports`.
 `target` está ignorado por Git.
 
-## Comprobación visual sobre la instalación habitual
+## Comprobación visual en una base de pruebas
 
-Esta revisión utiliza tu base habitual, no la base automatizada de pruebas.
-Configura `DB_URL`, `DB_USER` y `DB_PASSWORD` en la misma terminal y ejecuta:
+Esta revisión crea y modifica datos persistentes: usa una base de pruebas con
+una cuenta de empleado activa. Configura `DB_URL`, `DB_USER` y `DB_PASSWORD` a
+esa base en la misma terminal y ejecuta:
 
 ```powershell
-mvn javafx:run
+mvn clean javafx:run
 ```
+
+Inicia sesión con el empleado de prueba antes de abrir los módulos.
 
 - [ ] Abrir Planes y confirmar que los planes existentes de Gimnasio Principal
   siguen visibles.
@@ -134,8 +139,9 @@ mvn javafx:run
   al reactivarlo y volver a abrir la vista, debe aparecer de nuevo.
 
 Usar un plan de prueba propio para esta revisión; no cambiar planes reales sólo
-para probar. La revisión visual registra datos de forma normal, no tiene rollback
-automático. No crear un segundo gimnasio en la base habitual para estos pasos.
+para probar. La revisión visual registra datos de forma normal y no tiene
+rollback automático. No crear un segundo gimnasio en la base habitual para
+estos pasos.
 
 ## Evidencia de esta tanda
 

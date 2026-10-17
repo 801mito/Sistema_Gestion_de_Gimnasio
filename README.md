@@ -26,8 +26,9 @@ de la membresía.
 
 - JDK 21 o superior instalado.
 - Maven instalado y disponible en la terminal.
-- PostgreSQL 16, las migraciones multitenant 1.1 y de empleados 1.2, y una
-  primera cuenta de empleado para el gimnasio donde se trabajará.
+- PostgreSQL 16 con el esquema actualizado, la migración de empleados y, si la
+  base proviene del modelo anterior, la migración 1.3 de intentos por gimnasio;
+  también se necesita una cuenta de empleado activa.
 
 ### Comando
 
@@ -67,51 +68,27 @@ El verificador abre la conexión, ejecuta `SELECT 1` y la cierra
 automáticamente. Si no se configuró alguna variable o la conexión falla,
 muestra un mensaje claro sin imprimir la contraseña.
 
-## Estado del aislamiento por gimnasio
+## Flujo de acceso y aislamiento por gimnasio
 
-El módulo de Planes consulta, registra, edita, activa y desactiva únicamente los
-planes del gimnasio actual. Por ahora se utiliza `Gimnasio Principal`, obtenido
-de PostgreSQL por su nombre; no se supone que su ID sea 1.
+El inicio de sesión vincula la sesión del empleado con un solo gimnasio. Miembros,
+Planes, Membresías y Accesos usan ese contexto para consultar y modificar datos.
+La validación revisa el código, el estado de la membresía y sus fechas; cada
+intento queda en el historial del gimnasio, incluso si el código no existe.
+Consulta el [flujo de acceso](docs/flujo-acceso.md) y la
+[guía de pruebas manuales](docs/pruebas-manuales-acceso.md).
 
-Los nombres duplicados se validan dentro de ese gimnasio. Dos gimnasios pueden
-tener un plan con el mismo nombre sin compartir sus registros.
+Las guías de [Miembros](docs/avance-miembros-multitenant.md),
+[Membresías](docs/avance-membresias-multitenant.md),
+[códigos e intentos de acceso](docs/avance-accesos-multitenant.md),
+[estados de membresías](docs/estados-membresias.md) y
+[autenticación](docs/autenticacion-empleados.md) detallan el comportamiento de
+cada módulo.
 
-Esto **no significa que la aplicación ya sea multitenant para uso real**: los
-intentos de acceso todavía no se registran ni aíslan por gimnasio. El login
-JavaFX obtiene el gimnasio de la cuenta y permite cerrar sesión. Esto aún no
-reemplaza el aislamiento impuesto por permisos de PostgreSQL. No utilizar
-datos reales de varios gimnasios hasta contar con esos controles de base de datos.
-
-La #45 verifica que la tabla de Miembros y el selector de miembros en Membresías
-consultan por gimnasio. El registro envía `gimnasio_id` explícitamente y comprueba
-documentos duplicados sólo dentro del gimnasio actual. La edición también filtra
-por gimnasio e ID, y excluye al propio miembro al comprobar documentos duplicados.
-Las pruebas comprueban además que los miembros y relaciones anteriores a la
-migración permanecen y que los recursos JDBC se cierran correctamente. Ver
-[la verificación de Miembros](docs/avance-miembros-multitenant.md).
-
-La #55 filtra el historial de Membresías por gimnasio. Al asignar, verifica que
-el gimnasio esté activo y que el miembro y el plan le pertenezcan, comprueba la
-membresía activa dentro de ese gimnasio y guarda `gimnasio_id` explícitamente.
-La asignación y la generación del código permanecen en una sola transacción:
-si falla el código, se revierte también la membresía. Ver
-[la verificación de Membresías](docs/avance-membresias-multitenant.md).
-
-La #35 permite congelar y reactivar una membresía desde su tabla sin cambiar
-las fechas ni el estado del código de acceso. Un código activo no autoriza la
-entrada mientras la membresía esté congelada. Ver
-[las reglas de estados de membresías](docs/estados-membresias.md).
-
-La #59 filtra los códigos y la validación de acceso por el gimnasio actual a
-través de la membresía asociada. Un código de otro gimnasio no aparece, no
-puede activarse o desactivarse por ID y se rechaza igual que uno inexistente.
-La generación conserva la unicidad global de los códigos. Ver
-[la verificación de Accesos](docs/avance-accesos-multitenant.md).
-
-La #61 añade cuentas de empleados vinculadas a un gimnasio y un servicio que
-verifica sus credenciales. La #64 conecta ese servicio al login JavaFX y pasa
-el gimnasio del empleado a los módulos. Ver
-[el alcance y las limitaciones de la autenticación](docs/autenticacion-empleados.md).
+El aislamiento de consultas dentro de la aplicación **no sustituye** permisos
+de PostgreSQL: el cliente JavaFX se conecta directamente a la base usando
+`DB_*`. No expongas una base con datos reales de varios gimnasios a usuarios que
+compartan credenciales con permisos amplios; revisa las limitaciones de
+[autenticación](docs/autenticacion-empleados.md) antes de un despliegue real.
 
 ## Pruebas
 
