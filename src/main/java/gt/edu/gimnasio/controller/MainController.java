@@ -8,6 +8,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import gt.edu.gimnasio.model.Employee;
 import gt.edu.gimnasio.service.EmployeeSession;
@@ -162,7 +164,12 @@ public class MainController {
                     MainController.class.getResource("/gt/edu/gimnasio/view/accesses-view.fxml"));
             loader.setControllerFactory(controllerType -> new AccessesController(gymContext));
             VBox accessesView = loader.load();
-            contentArea.getChildren().setAll(accessesView);
+            ScrollPane scrollPane = new ScrollPane(accessesView);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+            scrollPane.getStyleClass().add("access-scroll-pane");
+            VBox.setVgrow(scrollPane, Priority.ALWAYS);
+            contentArea.getChildren().setAll(scrollPane);
         } catch (IOException exception) {
             Label error = createLabel("No fue posible cargar la vista de códigos de acceso.", "database-error");
             contentArea.getChildren().setAll(error);

@@ -84,6 +84,17 @@
     -fx-background-color: #f6f8fb;
 }
 
+.access-scroll-pane,
+.access-scroll-pane > .viewport {
+    -fx-background-color: #f6f8fb;
+}
+
+.access-scroll-pane {
+    -fx-border-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
 .content-title {
     -fx-font-size: 30px;
     -fx-font-weight: bold;
