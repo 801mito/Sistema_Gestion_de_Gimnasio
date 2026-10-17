@@ -19,10 +19,13 @@
   código siguen guardándose en una sola transacción.
 - Los códigos anteriores a la migración multitenant continúan visibles en
   Gimnasio Principal y pueden cambiar de estado. No se requiere otra migración
-  SQL: el gimnasio se obtiene mediante la membresía ya relacionada.
+  SQL para el alcance de la #59: el gimnasio se obtiene mediante la membresía
+  ya relacionada. El registro posterior de intentos requiere la #36 y su
+  migración 1.3 en bases que comenzaron con el modelo anterior.
 
-La aplicación todavía usa **Gimnasio Principal** como contexto inicial; no se
-añadió una pantalla de inicio de sesión ni un selector de gimnasio.
+El contexto de Accesos proviene del empleado autenticado; no hay un selector
+manual de gimnasio. El flujo de validación y el historial están descritos en
+[la guía actual de acceso](flujo-acceso.md).
 
 ## Pruebas
 
@@ -54,19 +57,20 @@ habitual.
 
 ### Comprobación manual opcional
 
-En una **base de prueba** con la migración 1.1 aplicada, configurar `DB_URL`,
-`DB_USER` y `DB_PASSWORD` en la misma terminal y ejecutar `mvn javafx:run`.
-En Accesos deben aparecer los códigos de Gimnasio Principal. Validar uno
-vigente y otro inexistente; activar/desactivar un código propio y comprobar
-que la tabla refleja el cambio. Estas operaciones persisten datos: no hacerlas
-en la base habitual sólo para comprobar esta issue. La comprobación de dos
-gimnasios se realiza mediante las pruebas de integración; la interfaz todavía
-no permite cambiar de gimnasio.
+En una **base de prueba** con el esquema actualizado y una cuenta de empleado,
+configurar `DB_URL`, `DB_USER` y `DB_PASSWORD` en la misma terminal y ejecutar
+`mvn clean javafx:run`. Iniciar sesión y abrir Accesos. Validar un código de
+prueba vigente y uno desconocido; activar/desactivar un código propio y
+comprobar que la tabla refleja el cambio. Estas operaciones persisten datos:
+no hacerlas en la base habitual sólo para comprobar esta issue. Para el registro
+e historial de intentos, seguir la
+[guía actual de pruebas manuales](pruebas-manuales-acceso.md).
 
 ## Límites pendientes
 
-Los intentos de acceso aún no se registran ni se aíslan por gimnasio. Tampoco
-hay cuentas de usuario, autenticación ni elección **autorizada** del gimnasio.
-El filtrado de esta issue evita cruces accidentales en sus operaciones, pero
-**no equivale a un multitenant seguro para uso real**. No utilizar un segundo
-gimnasio con datos reales hasta completar esas etapas.
+El registro y aislamiento de intentos se añadieron posteriormente en la #36;
+las cuentas de empleados y el contexto autenticado se completaron en las #61 y
+#64. El cliente JavaFX aún se conecta directamente a PostgreSQL con `DB_*`, por
+lo que el filtro de la aplicación no reemplaza permisos de base de datos. Revisa
+[las limitaciones de autenticación](autenticacion-empleados.md) antes de usar
+datos reales de varios gimnasios.

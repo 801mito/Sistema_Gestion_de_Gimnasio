@@ -47,9 +47,11 @@ El historial y la asignación de membresías quedaron fuera de la #45; su
 implementación posterior se describe en
 [la verificación de Membresías](avance-membresias-multitenant.md). El aislamiento
 posterior de códigos y validación se describe en
-[la verificación de Accesos](avance-accesos-multitenant.md). Aún faltan los
-intentos de acceso y una selección autorizada de gimnasio; no utilizar varios
-gimnasios con datos reales todavía.
+[la verificación de Accesos](avance-accesos-multitenant.md). El inicio de sesión
+de empleados determina el gimnasio actual; el sistema todavía depende de los
+permisos de la conexión directa a PostgreSQL. Consulta
+[las limitaciones de autenticación](autenticacion-empleados.md) antes de usar
+datos reales de varios gimnasios.
 
 ## Verificación
 
@@ -103,11 +105,14 @@ pruebas temporal.
 
 ### Revisión manual opcional
 
-Configurar `DB_URL`, `DB_USER` y `DB_PASSWORD` en la misma terminal y ejecutar:
+Usa una base de pruebas con un empleado activo. Configura `DB_URL`, `DB_USER` y
+`DB_PASSWORD` para esa base en la misma terminal y ejecuta:
 
 ```powershell
-mvn javafx:run
+mvn clean javafx:run
 ```
+
+Inicia sesión con el empleado de prueba antes de abrir los módulos.
 
 1. Abrir Miembros y revisar la lista de Gimnasio Principal.
 2. Seleccionar un miembro: debe habilitarse Actualizar.

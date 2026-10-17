@@ -7,10 +7,9 @@ Esta carpeta contiene cambios que deben aplicarse sobre una base de datos existe
 `V1_3__aislar_intentos_por_gimnasio.sql` agrega `gimnasio_id` obligatorio a
 `intento_acceso`. Los intentos que ya tienen código reciben el gimnasio de su
 membresía. Los intentos antiguos sin código se asignan a `Gimnasio Principal`,
-el único gimnasio que existía cuando se registraron. Revisar un respaldo antes
-de ejecutar esta migración una sola vez después de V1_2. La aplicación aún no
-registra automáticamente los intentos; esa integración sigue en la próxima
-tanda de la #36.
+el único gimnasio que existía cuando se registraron. La aplicación registra
+cada validación y filtra el historial por el gimnasio autenticado. Revisar un
+respaldo antes de ejecutar esta migración una sola vez después de V1_2.
 El modelo físico 1.1 para bases nuevas ya incluye esta columna; no se debe
 ejecutar V1_3 sobre una base creada directamente con ese modelo.
 
@@ -46,11 +45,13 @@ No ejecutar el modelo físico para bases nuevas sobre una base de datos que ya c
 
 ## Estado del uso desde Java
 
-Planes ya utiliza el contexto del gimnasio actual, filtra sus consultas y envía
-`gimnasio_id` explícitamente al registrar. También restringe edición y cambios de
-estado al mismo gimnasio. Los valores predeterminados de la migración se
-conservan por compatibilidad con los módulos que todavía no se han adaptado.
+Planes, Miembros, Membresías y Accesos utilizan el contexto del gimnasio actual
+para filtrar sus consultas y restringir las escrituras. Los valores
+predeterminados de las migraciones se conservan por compatibilidad con el
+modelo previo y las pruebas.
 
 Las pruebas de aislamiento de Planes no requieren aplicar otra migración a la
 base habitual: reconstruyen los modelos 1.0/1.1 en esquemas temporales de una
 base de pruebas. Ver [la guía de pruebas](../../docs/pruebas-planes-multitenant.md).
+El flujo de validación y registro de intentos está descrito en
+[la guía de Accesos](../../docs/flujo-acceso.md).
