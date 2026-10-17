@@ -30,13 +30,13 @@ ninguno como aprobado sólo por leer esta guía.
 
 | Caso | Acción | Resultado esperado | Resultado |
 | --- | --- | --- | --- |
-| Código vigente | Validar el código de la membresía activa | Se autoriza al miembro y se agrega un intento `AUTORIZADO` al historial | Pendiente |
-| Código inactivo | En **Ver códigos**, desactivar el código de prueba y validarlo | Se rechaza por código inactivo; queda un intento `RECHAZADO` asociado al código | Pendiente |
-| Membresía congelada | Congelar una membresía de prueba cuyo código siga activo y validarlo | Se rechaza indicando que la membresía está congelada; el intento queda asociado al código | Pendiente |
-| Membresía vencida | Marcar como vencida una membresía de prueba con código activo y validarlo | Se rechaza indicando que la membresía está vencida; el intento queda asociado al código | Pendiente |
-| Código desconocido | Ingresar un valor que no corresponda a ningún código y validarlo | Se rechaza como inexistente; el historial muestra **No reconocido** y no conserva el valor ingresado | Pendiente |
-| Campo vacío | Dejar el campo vacío y validar | Se rechaza indicando que se ingrese un código; el historial muestra **No reconocido** | Pendiente |
-| Historial | Abrir **Ver historial** y luego **Actualizar historial** | Aparecen los intentos de la sesión con código, resultado, motivo y fecha/hora, en orden del más reciente al más antiguo | Pendiente |
+| Código vigente | Validar el código de la membresía activa | Se autoriza al miembro y se agrega un intento `AUTORIZADO` al historial | Aprobado el 17/10/2026: autorización e intento visibles |
+| Código inactivo | En **Ver códigos**, desactivar el código de prueba y validarlo | Se rechaza por código inactivo; queda un intento `RECHAZADO` asociado al código | Aprobado el 17/10/2026: rechazo e intento asociado al código visibles |
+| Membresía congelada | Congelar una membresía de prueba cuyo código siga activo y validarlo | Se rechaza indicando que la membresía está congelada; el intento queda asociado al código | Aprobado el 17/10/2026: rechazo e intento visibles |
+| Membresía vencida | Marcar como vencida una membresía de prueba con código activo y validarlo | Se rechaza indicando que la membresía está vencida; el intento queda asociado al código | Aprobado el 17/10/2026: rechazo e intento visibles |
+| Código desconocido | Ingresar un valor que no corresponda a ningún código y validarlo | Se rechaza como inexistente; el historial muestra **No reconocido** y no conserva el valor ingresado | Aprobado el 17/10/2026: rechazo e intento no reconocido visibles |
+| Campo vacío | Dejar el campo vacío y validar | Se rechaza indicando que se ingrese un código; el historial muestra **No reconocido** | Aprobado el 17/10/2026: rechazo e intento no reconocido visibles |
+| Historial | Abrir **Ver historial** y luego **Actualizar historial** | Aparecen los intentos de la sesión con código, resultado, motivo y fecha/hora, en orden del más reciente al más antiguo | Aprobado el 17/10/2026: intentos, resultados y motivos visibles, incluido el rechazo por código inactivo |
 
 Usa un valor ficticio que no sea un código real para el caso de código
 desconocido. Si reutilizas un código entre casos, reactívalo antes de probar la
