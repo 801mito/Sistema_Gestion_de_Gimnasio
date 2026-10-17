@@ -68,6 +68,9 @@ public class MembershipsController {
     private Button reactivateButton;
 
     @FXML
+    private Button expireButton;
+
+    @FXML
     private TableColumn<Membership, Number> idColumn;
 
     @FXML
@@ -155,29 +158,37 @@ public class MembershipsController {
 
     @FXML
     private void freezeMembership() {
-        changeMembershipStatus(true);
+        changeMembershipStatus(StatusAction.FREEZE);
     }
 
     @FXML
     private void reactivateMembership() {
-        changeMembershipStatus(false);
+        changeMembershipStatus(StatusAction.REACTIVATE);
     }
 
-    private void changeMembershipStatus(boolean freeze) {
+    @FXML
+    private void expireMembership() {
+        changeMembershipStatus(StatusAction.EXPIRE);
+    }
+
+    private void changeMembershipStatus(StatusAction action) {
         Membership selected = membershipsTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showFeedback("Selecciona una membresía.", false);
             return;
         }
         try {
-            if (freeze) {
-                membershipService.freeze(selected.getId());
-            } else {
-                membershipService.reactivate(selected.getId());
+            switch (action) {
+                case FREEZE -> membershipService.freeze(selected.getId());
+                case REACTIVATE -> membershipService.reactivate(selected.getId());
+                case EXPIRE -> membershipService.expire(selected.getId());
             }
             if (loadMemberships()) {
-                showFeedback(freeze ? "Membresía congelada correctamente."
-                        : "Membresía reactivada correctamente.", true);
+                showFeedback(switch (action) {
+                    case FREEZE -> "Membresía congelada correctamente.";
+                    case REACTIVATE -> "Membresía reactivada correctamente.";
+                    case EXPIRE -> "Membresía vencida correctamente.";
+                }, true);
             }
         } catch (MembershipValidationException exception) {
             if (loadMemberships()) {
@@ -191,6 +202,12 @@ public class MembershipsController {
     private void updateStatusButtons(Membership selected) {
         freezeButton.setDisable(selected == null || !"ACTIVA".equals(selected.getStatus()));
         reactivateButton.setDisable(selected == null || !"CONGELADA".equals(selected.getStatus()));
+        expireButton.setDisable(selected == null || !("ACTIVA".equals(selected.getStatus())
+                || "CONGELADA".equals(selected.getStatus())));
+    }
+
+    private enum StatusAction {
+        FREEZE, REACTIVATE, EXPIRE
     }
 
     private boolean loadMemberships() {
