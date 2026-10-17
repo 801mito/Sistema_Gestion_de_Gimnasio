@@ -43,6 +43,8 @@
                 styleClass="secondary-button" text="Congelar membresía" />
         <Button fx:id="reactivateButton" disable="true" mnemonicParsing="false" onAction="#reactivateMembership"
                 styleClass="primary-button" text="Reactivar membresía" />
+        <Button fx:id="expireButton" disable="true" mnemonicParsing="false" onAction="#expireMembership"
+                styleClass="secondary-button" text="Marcar como vencida" />
     </HBox>
     <TableView fx:id="membershipsTable" prefHeight="400.0" styleClass="memberships-table" VBox.vgrow="ALWAYS">
         <columns>

@@ -385,7 +385,7 @@ class ScopedViewsIT {
 
     @Test
     @SuppressWarnings("unchecked")
-    void membershipButtonsFreezeAndReactivateSelectedRow() throws Exception {
+    void membershipButtonsFreezeReactivateAndExpireSelectedRow() throws Exception {
         fixture.execute("""
                 INSERT INTO plan (plan_id, gimnasio_id, nombre, duracion_dias)
                 VALUES (101, 41, 'Mensual', 30);
@@ -401,20 +401,37 @@ class ScopedViewsIT {
             TableView<Membership> table = (TableView<Membership>) loader.getNamespace().get("membershipsTable");
             Button freeze = (Button) loader.getNamespace().get("freezeButton");
             Button reactivate = (Button) loader.getNamespace().get("reactivateButton");
+            Button expire = (Button) loader.getNamespace().get("expireButton");
             Label feedback = (Label) loader.getNamespace().get("feedbackLabel");
             assertTrue(freeze.isDisabled());
             assertTrue(reactivate.isDisabled());
+            assertTrue(expire.isDisabled());
             table.getSelectionModel().selectFirst();
             assertFalse(freeze.isDisabled());
+            assertFalse(expire.isDisabled());
             freeze.fire();
             assertEquals("CONGELADA", table.getItems().getFirst().getStatus());
             assertTrue(feedback.getText().contains("congelada correctamente"));
             table.getSelectionModel().selectFirst();
             assertFalse(reactivate.isDisabled());
+            assertFalse(expire.isDisabled());
             reactivate.fire();
             assertEquals("ACTIVA", table.getItems().getFirst().getStatus());
             assertTrue(feedback.getText().contains("reactivada correctamente"));
+            table.getSelectionModel().selectFirst();
+            freeze.fire();
+            table.getSelectionModel().selectFirst();
+            assertFalse(expire.isDisabled());
+            expire.fire();
+            assertEquals(1, table.getItems().size());
+            assertEquals("VENCIDA", table.getItems().getFirst().getStatus());
+            assertTrue(feedback.getText().contains("vencida correctamente"));
+            table.getSelectionModel().selectFirst();
+            assertTrue(freeze.isDisabled());
+            assertTrue(reactivate.isDisabled());
+            assertTrue(expire.isDisabled());
         });
+        assertEquals("VENCIDA", new MembershipRepository().findAll().getFirst().getStatus());
         fixture.assertResourcesClosed();
     }
 
