@@ -1,8 +1,9 @@
 """Build DERCAS 1.2 with multitenant requirements in the main sections.
 
 The two approved modeling diagrams are imported unchanged from DERCAS 1.1.
-The signed 1.1 PDF remains the historical approval record; this revision does
-not reuse its signature as approval of the new text.
+The signed 1.1 PDF remains the historical approval record. At the author's
+request, his handwritten signature is carried into the updated version;
+the reviewer's signature is left blank.
 """
 
 from __future__ import annotations
@@ -19,7 +20,9 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (
+    Flowable,
     KeepTogether,
     PageBreak,
     Paragraph,
@@ -307,16 +310,31 @@ def revisions():
         ("1.1", "26 de agosto de 2026", "Reformulación del requerimiento general, índice, diagramas, diccionario de datos, criterios de aceptación y sección de aprobación."),
         ("1.2", "17 de octubre de 2026", "Integración multitenant en el requerimiento, alcance, actores, requisitos, reglas, modelo, diccionario, seguridad y criterios de aceptación. Diagramas sin cambios."),
     ], [52, 131, CONTENT_W - 183])]
-    s += [heading("10.1 Conformidad de la revisión 1.2", 2)]
-    s += [p("La aprobación registrada en el PDF original de la versión 1.1 corresponde a esa versión y se conserva como antecedente. Esta revisión 1.2 incorpora requisitos nuevos y dispone de espacios de conformidad propios; no se reutilizan firmas previas como aprobación de estos cambios.")]
-    s += [Spacer(1, 78)]
-    signatures = Table([[
-        p("___________________________<br/><b>JAIME CARDONA</b><br/>Responsable del proyecto", BODY),
-        p("___________________________<br/><b>HENDRICK CALDERON</b><br/>Ingeniero revisor", BODY),
-    ]], colWidths=[CONTENT_W / 2, CONTENT_W / 2])
-    signatures.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
-    s += [signatures]
+    s += [Spacer(1, 54), SignatureBlock()]
     return fragment(s)
+
+
+class SignatureBlock(Flowable):
+    """Show only the responsible author's existing handwritten signature."""
+
+    def __init__(self):
+        super().__init__()
+        self.width = CONTENT_W
+        self.height = 150
+
+    def draw(self):
+        signature = PdfReader(SOURCE).pages[12].images[0]
+        c = self.canv
+        c.drawImage(ImageReader(BytesIO(signature.data)), 78, 51, width=58, height=91, mask="auto")
+        c.setStrokeColor(colors.black)
+        c.line(10, 49, 231, 49)
+        c.line(305, 49, 526, 49)
+        c.setFont("Arial-Bold", 9.4)
+        c.drawCentredString(120, 30, "JAIME CARDONA")
+        c.drawCentredString(415, 30, "HENDRICK CALDERON")
+        c.setFont("Arial", 9.1)
+        c.drawCentredString(120, 16, "Responsable del proyecto")
+        c.drawCentredString(415, 16, "Ingeniero revisor")
 
 
 def single_page(draw) -> PdfReader:
