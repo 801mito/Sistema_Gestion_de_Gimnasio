@@ -12,6 +12,7 @@ from io import BytesIO
 from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
+from pypdf.generic import ArrayObject, NumberObject, RectangleObject
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.utils import ImageReader
@@ -250,6 +251,44 @@ def footer(page, page_number, diagram_numbers):
     page.merge_page(PdfReader(stream).pages[0])
 
 
+def dictionary_link(writer):
+    """Enlaza el diccionario extendido desde el final de la sección 7.2."""
+    page_index = 11  # Página 12: bajo la tabla INTENTO_ACCESO.
+    page = writer.pages[page_index]
+    if "INTENTO_ACCESO" not in (page.extract_text() or ""):
+        raise ValueError("La sección 7.2 cambió de página; revisar el enlace.")
+
+    page_w = float(page.mediabox.width)
+    page_h = float(page.mediabox.height)
+    stream = BytesIO()
+    c = canvas.Canvas(stream, pagesize=(page_w, page_h))
+    x = 44
+    c.setStrokeColor(colors.HexColor("#b8b8b8"))
+    c.setLineWidth(0.45)
+    c.line(x, 254, page_w - x, 254)
+    c.setFillColor(colors.HexColor("#303030"))
+    c.setFont("Arial", 8.5)
+    c.drawString(
+        x, 236,
+        "Detalle ampliado: diccionario de datos extendido "
+        "(flujos, estructuras, elementos y almacenes).",
+    )
+    link_text = "Consultar docs/diccionario-de-datos-extendido.pdf"
+    c.drawString(x, 220, link_text)
+    link_w = c.stringWidth(link_text, "Arial", 8.5)
+    c.line(x, 218, x + link_w, 218)
+    c.save()
+    stream.seek(0)
+    page.merge_page(PdfReader(stream).pages[0])
+    writer.add_uri(
+        page_index,
+        "https://github.com/801mito/Sistema_Gestion_de_Gimnasio/blob/main/"
+        "docs/diccionario-de-datos-extendido.pdf",
+        RectangleObject((x, 216, x + link_w, 231)),
+        border=ArrayObject([NumberObject(0), NumberObject(0), NumberObject(0)]),
+    )
+
+
 def main():
     if not SOURCE.is_file():
         raise FileNotFoundError(f"No se encontró la versión de origen: {SOURCE}")
@@ -297,6 +336,7 @@ def main():
             writer.add_page(page)
     for i, page in enumerate(writer.pages, 1):
         footer(page, i, diagram_numbers)
+    dictionary_link(writer)
     writer.add_metadata({
         "/Title": "DERCAS - Sistema de Gestión de Gimnasio - MVP v1.3",
         "/Author": "Jaime Cardona",
