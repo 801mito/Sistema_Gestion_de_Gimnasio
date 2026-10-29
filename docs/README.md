@@ -10,4 +10,5 @@ Esta carpeta contiene la documentación del proyecto.
 - [Flujo actual de validación y registro de accesos](flujo-acceso.md).
 - [Lista de pruebas manuales del flujo de acceso](pruebas-manuales-acceso.md).
 - [Cuentas y autenticación de empleados](autenticacion-empleados.md).
+- [Diccionario de datos extendido en PDF: flujos, estructuras, elementos y almacenes](diccionario-de-datos-extendido.pdf) ([fuente editable](diccionario-de-datos-extendido.md)).
 - [Modelo de datos y diagramas DER](diagramas/der/README.md).
