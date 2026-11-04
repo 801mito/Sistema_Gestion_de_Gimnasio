@@ -206,7 +206,7 @@ class ScopedViewsIT {
                 TextField codeInput = (TextField) secondAccess.lookup("#accessCodeField");
                 codeInput.setText("GYM-PRIMARY701");
                 ((Button) secondAccess.lookup("#validateButton")).fire();
-                assertEquals("El código ingresado no existe.",
+                assertEquals("RECHAZADO — El código ingresado no existe.",
                         ((Label) secondAccess.lookup("#validationResultLabel")).getText());
                 secondCodes.getItems().add(foreignCode);
                 secondCodes.getSelectionModel().select(foreignCode);
@@ -598,13 +598,15 @@ class ScopedViewsIT {
             assertEquals(List.of(801), table.getItems().stream().map(AccessCode::getId).toList());
             input.setText("GYM-PRIMARY701");
             validate.fire();
-            assertEquals("El código ingresado no existe.", result.getText());
+            assertEquals("RECHAZADO — El código ingresado no existe.", result.getText());
+            assertTrue(result.isVisible());
             assertEquals(1, history.getItems().size());
             assertNull(history.getItems().getFirst().accessCodeId());
             assertNull(history.getItems().getFirst().code());
             input.setText("GYM-SECONDARY801");
             validate.fire();
-            assertTrue(result.getText().contains("Acceso autorizado"));
+            assertEquals("AUTORIZADO — Acceso autorizado para Ana Secundaria.", result.getText());
+            assertTrue(result.isVisible());
             assertEquals(2, history.getItems().size());
             assertEquals("GYM-SECONDARY801", history.getItems().stream()
                     .filter(attempt -> attempt.accessCodeId() != null).findFirst().orElseThrow().code());
@@ -637,6 +639,57 @@ class ScopedViewsIT {
         });
         assertTrue(new AccessCodeRepository().findAll().getFirst().isActive());
         assertTrue(new AccessCodeRepository(secondary).findAll().getFirst().isActive());
+        fixture.assertResourcesClosed();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void accessViewReplacesAuthorizationWithTechnicalErrorWithoutSavingAnotherAttempt(boolean connectionFails)
+            throws Exception {
+        fixture.execute("""
+                INSERT INTO plan (plan_id, gimnasio_id, nombre, duracion_dias)
+                VALUES (101, 41, 'Plan principal', 30);
+                INSERT INTO miembro (miembro_id, gimnasio_id, nombres, apellidos)
+                VALUES (301, 41, 'Jaime', 'Principal');
+                INSERT INTO membresia (membresia_id, gimnasio_id, plan_id, miembro_id,
+                                       estado, fecha_inicio, fecha_fin)
+                VALUES (501, 41, 101, 301, 'ACTIVA', CURRENT_DATE - 7, CURRENT_DATE + 7);
+                INSERT INTO codigo_acceso (codigo_acceso_id, membresia_id, codigo)
+                VALUES (701, 501, 'GYM-PRIMARY701');
+                """);
+        GymContext context = new GymContext();
+        onFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gt/edu/gimnasio/view/accesses-view.fxml"));
+            loader.setControllerFactory(type -> new AccessesController(context));
+            loader.load();
+            var controls = loader.getNamespace();
+            TextField input = (TextField) controls.get("accessCodeField");
+            Button validate = (Button) controls.get("validateButton");
+            Label result = (Label) controls.get("validationResultLabel");
+
+            input.setText("GYM-PRIMARY701");
+            validate.fire();
+            assertEquals("AUTORIZADO — Acceso autorizado para Jaime Principal.", result.getText());
+            assertTrue(result.getStyleClass().contains("feedback-success"));
+
+            if (connectionFails) {
+                fixture.rejectConnections(true);
+            } else {
+                // NOT VALID conserva el intento anterior y rechaza las nuevas inserciones.
+                fixture.execute("ALTER TABLE intento_acceso ADD CHECK (false) NOT VALID");
+            }
+            try {
+                validate.fire();
+                assertEquals("ERROR — No fue posible validar el acceso. Verifica la conexión a PostgreSQL.",
+                        result.getText());
+                assertTrue(result.isVisible());
+                assertFalse(result.getStyleClass().contains("feedback-success"));
+            } finally {
+                fixture.rejectConnections(false);
+            }
+        });
+        List<AccessAttempt> attempts = new AccessAttemptRepository(context).findAll();
+        assertEquals(List.of("AUTORIZADO"), attempts.stream().map(AccessAttempt::result).toList());
         fixture.assertResourcesClosed();
     }
 
