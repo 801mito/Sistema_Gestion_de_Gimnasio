@@ -1,9 +1,11 @@
 package gt.edu.gimnasio.service;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Objects;
 
+import gt.edu.gimnasio.config.DatabaseConnection;
 import gt.edu.gimnasio.model.AccessValidationData;
 import gt.edu.gimnasio.model.AccessValidationResult;
 import gt.edu.gimnasio.repository.AccessAttemptRepository;
@@ -24,11 +26,36 @@ public class AccessValidationService {
     /** Valida un código con el estado y vigencia de la membresía asociada. */
     public AccessValidationResult validate(String enteredCode) throws SQLException {
         String normalizedCode = enteredCode == null ? "" : enteredCode.trim();
+        int gymId = accessAttemptRepository.currentGymId();
+        try (Connection connection = DatabaseConnection.openConnection()) {
+            // Si otro operador ganó el bloqueo, leer la fila actualizada al terminar la espera.
+            connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+            connection.setAutoCommit(false);
+            try {
+                AccessValidationData data = normalizedCode.isEmpty()
+                        ? null
+                        : accessCodeRepository.lockValidationDataByCode(connection, gymId, normalizedCode);
+                AccessValidationResult result = decide(normalizedCode, data);
+                Integer accessCodeId = data == null ? null : data.getAccessCodeId();
+                String storedReason = result.isAuthorized() ? "Acceso autorizado." : result.getReason();
+                if (storedReason.length() > 100) {
+                    storedReason = storedReason.substring(0, 100);
+                }
+                accessAttemptRepository.save(connection, gymId, accessCodeId, result.isAuthorized(), storedReason);
+                connection.commit();
+                return result;
+            } catch (SQLException | RuntimeException exception) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackFailure) {
+                    exception.addSuppressed(rollbackFailure);
+                }
+                throw exception;
+            }
+        }
+    }
 
-        AccessValidationData validationData = normalizedCode.isEmpty()
-                ? null
-                : accessCodeRepository.findValidationDataByCode(normalizedCode);
-
+    private AccessValidationResult decide(String normalizedCode, AccessValidationData validationData) {
         AccessValidationResult result;
         if (normalizedCode.isEmpty()) {
             result = AccessValidationResult.rejected("Ingresa un código de acceso.", null);
@@ -51,12 +78,6 @@ public class AccessValidationService {
             }
         }
 
-        Integer accessCodeId = validationData == null ? null : validationData.getAccessCodeId();
-        String storedReason = result.isAuthorized() ? "Acceso autorizado." : result.getReason();
-        if (storedReason.length() > 100) {
-            storedReason = storedReason.substring(0, 100);
-        }
-        accessAttemptRepository.save(accessCodeId, result.isAuthorized(), storedReason);
         return result;
     }
 }

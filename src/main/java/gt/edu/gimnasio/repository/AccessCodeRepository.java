@@ -74,6 +74,9 @@ public class AccessCodeRepository {
               AND gimnasio.gimnasio_activo = TRUE
             """;
 
+    private static final String LOCK_VALIDATION_DATA_BY_CODE_SQL = FIND_VALIDATION_DATA_BY_CODE_SQL
+            + "FOR SHARE OF codigo_acceso, membresia";
+
     private final GymContext gymContext;
 
     public AccessCodeRepository() {
@@ -132,8 +135,23 @@ public class AccessCodeRepository {
     /** Busca la información necesaria para validar un código y su membresía. */
     public AccessValidationData findValidationDataByCode(String code) throws SQLException {
         int gymId = gymContext.getCurrentGymId();
-        try (Connection connection = DatabaseConnection.openConnection();
-             PreparedStatement statement = connection.prepareStatement(FIND_VALIDATION_DATA_BY_CODE_SQL)) {
+        try (Connection connection = DatabaseConnection.openConnection()) {
+            return readValidationData(connection, gymId, code, FIND_VALIDATION_DATA_BY_CODE_SQL);
+        }
+    }
+
+    /** Mantiene estables el código y la membresía hasta registrar el intento en esta transacción. */
+    public AccessValidationData lockValidationDataByCode(Connection connection, int gymId, String code)
+            throws SQLException {
+        if (connection.getAutoCommit()) {
+            throw new IllegalArgumentException("La validación requiere una transacción abierta.");
+        }
+        return readValidationData(connection, gymId, code, LOCK_VALIDATION_DATA_BY_CODE_SQL);
+    }
+
+    private AccessValidationData readValidationData(Connection connection, int gymId, String code, String sql)
+            throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, code);
             statement.setInt(2, gymId);
 

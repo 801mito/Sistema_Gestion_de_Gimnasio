@@ -26,9 +26,8 @@ de la membresía.
 
 - JDK 21 o superior instalado.
 - Maven instalado y disponible en la terminal.
-- PostgreSQL 16 con el esquema actualizado, la migración de empleados y, si la
-  base proviene del modelo anterior, la migración 1.3 de intentos por gimnasio;
-  también se necesita una cuenta de empleado activa.
+- PostgreSQL 16 con el [esquema actualizado hasta V1_4](database/migrations/README.md)
+  y una cuenta de empleado activa.
 
 ### Comando
 

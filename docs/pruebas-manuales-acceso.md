@@ -15,7 +15,9 @@ de pruebas desechable, no la base habitual ni una base con datos reales.
    `V1_2__crear_empleados.sql` y
    `V1_3__aislar_intentos_por_gimnasio.sql`. Una base nueva creada desde el
    modelo físico multitenant ya tiene la columna `intento_acceso.gimnasio_id`;
-   no ejecutes V1.3 otra vez. No vuelvas a ejecutar migraciones ya aplicadas.
+   no ejecutes V1.3 otra vez. En ambos casos aplica también
+   `V1_4__proteger_aislamiento_intentos.sql`. No vuelvas a ejecutar migraciones
+   ya aplicadas.
 3. Inicia la aplicación con `mvn clean javafx:run` y entra con un empleado de
    prueba asociado a un gimnasio de prueba.
 4. Prepara un miembro de prueba, un plan activo y una membresía vigente con un
