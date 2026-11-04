@@ -49,14 +49,15 @@ reconoce, su estado y el de la membresía se bloquean para cambios concurrentes
 hasta confirmar el intento. La aplicación muestra la decisión sólo después de
 confirmar el registro.
 
-Después de validar, el resultado aparece debajo del formulario y el historial
-se actualiza. **Ver historial** muestra código (o **No reconocido**), resultado,
+Después de validar, debajo del formulario aparece **AUTORIZADO** o **RECHAZADO**
+junto al motivo; por ejemplo, «RECHAZADO — El código ingresado no existe».
+El historial se actualiza. **Ver historial** muestra código (o **No reconocido**), resultado,
 motivo y fecha/hora; **Actualizar historial** vuelve a consultar los registros.
 El historial se filtra por el gimnasio de la sesión.
 
 Si PostgreSQL no está disponible o no se puede guardar el intento, la pantalla
-muestra un mensaje general de error. No debe considerarse autorizado un intento
-cuyo resultado no se pudo registrar.
+muestra **ERROR** con un mensaje general, sin mostrar una autorización ni un
+rechazo para esa validación.
 
 ## Base de datos y límite de seguridad
 

@@ -106,10 +106,13 @@ public class AccessesController {
     private void validateAccess() {
         try {
             AccessValidationResult result = accessValidationService.validate(accessCodeField.getText());
-            showValidationResult(result.getReason(), result.isAuthorized());
+            boolean authorized = result.isAuthorized();
+            String outcome = authorized ? "AUTORIZADO" : "RECHAZADO";
+            showValidationResult(outcome + " — " + result.getReason(), authorized);
             loadAccessAttempts();
         } catch (SQLException | IllegalStateException exception) {
-            showValidationResult("No fue posible validar el acceso. Verifica la conexión a PostgreSQL.", false);
+            showValidationResult(
+                    "ERROR — No fue posible validar el acceso. Verifica la conexión a PostgreSQL.", false);
             loadAccessAttempts();
         }
     }

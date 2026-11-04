@@ -53,6 +53,7 @@ final class PostgresPlanFixture implements AutoCloseable {
     private boolean rejectPlanReads;
     private boolean rejectMemberReads;
     private boolean rejectMemberMapping;
+    private boolean rejectConnections;
 
     PostgresPlanFixture(boolean migrateLegacyModel) throws SQLException, IOException {
         this(migrateLegacyModel, null);
@@ -150,6 +151,11 @@ final class PostgresPlanFixture implements AutoCloseable {
     /** Falla después de obtener un ResultSet de miembro para verificar su cierre. */
     void rejectMemberMapping(boolean reject) {
         rejectMemberMapping = reject;
+    }
+
+    /** Simula la caída de la conexión de la aplicación sin afectar las comprobaciones del fixture. */
+    void rejectConnections(boolean reject) {
+        rejectConnections = reject;
     }
 
     void assertResourcesClosed() {
@@ -268,6 +274,9 @@ final class PostgresPlanFixture implements AutoCloseable {
         public Connection connect(String url, Properties properties) throws SQLException {
             if (!acceptsURL(url)) {
                 return null;
+            }
+            if (rejectConnections) {
+                throw new SQLException("Fallo de conexión inyectado por la prueba.");
             }
             return track(openFixtureConnection(), Connection.class);
         }
