@@ -19,8 +19,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -150,8 +153,9 @@ class ScopedViewsIT {
                         (TableView<Membership>) stage.getScene().lookup("#membershipsTable");
                 assertEquals(List.of(501), firstMemberships.getItems().stream().map(Membership::getId).toList());
                 ((Button) stage.getScene().lookup("#accessButton")).fire();
+                Node firstAccess = accessContent(stage.getScene());
                 TableView<AccessCode> firstCodes =
-                        (TableView<AccessCode>) stage.getScene().lookup("#accessCodesTable");
+                        (TableView<AccessCode>) firstAccess.lookup("#accessCodesTable");
                 assertEquals(List.of("GYM-PRIMARY701"),
                         firstCodes.getItems().stream().map(AccessCode::getCode).toList());
                 AccessCode foreignCode = firstCodes.getItems().getFirst();
@@ -193,21 +197,22 @@ class ScopedViewsIT {
                         (TableView<Membership>) stage.getScene().lookup("#membershipsTable");
                 assertEquals(List.of(601), secondMemberships.getItems().stream().map(Membership::getId).toList());
                 ((Button) stage.getScene().lookup("#accessButton")).fire();
+                Node secondAccess = accessContent(stage.getScene());
                 TableView<AccessCode> secondCodes =
-                        (TableView<AccessCode>) stage.getScene().lookup("#accessCodesTable");
+                        (TableView<AccessCode>) secondAccess.lookup("#accessCodesTable");
                 assertEquals(List.of("GYM-SECONDARY801"),
                         secondCodes.getItems().stream().map(AccessCode::getCode).toList());
 
-                TextField codeInput = (TextField) stage.getScene().lookup("#accessCodeField");
+                TextField codeInput = (TextField) secondAccess.lookup("#accessCodeField");
                 codeInput.setText("GYM-PRIMARY701");
-                ((Button) stage.getScene().lookup(".primary-button")).fire();
+                ((Button) secondAccess.lookup("#validateButton")).fire();
                 assertEquals("El código ingresado no existe.",
-                        ((Label) stage.getScene().lookup("#validationResultLabel")).getText());
+                        ((Label) secondAccess.lookup("#validationResultLabel")).getText());
                 secondCodes.getItems().add(foreignCode);
                 secondCodes.getSelectionModel().select(foreignCode);
-                ((Button) stage.getScene().lookup("#deactivateButton")).fire();
+                ((Button) secondAccess.lookup("#deactivateButton")).fire();
                 assertEquals("No se encontró el código de acceso en el gimnasio actual.",
-                        ((Label) stage.getScene().lookup("#feedbackLabel")).getText());
+                        ((Label) secondAccess.lookup("#feedbackLabel")).getText());
             } finally {
                 stage.close();
             }
@@ -545,7 +550,7 @@ class ScopedViewsIT {
             VBox membershipsView = (VBox) content.getChildren().getFirst();
             assertEquals(1, ((ComboBox<?>) membershipsView.lookup("#memberComboBox")).getItems().size());
             ((Button) mainLoader.getNamespace().get("accessButton")).fire();
-            VBox accessesView = (VBox) content.getChildren().getFirst();
+            Node accessesView = accessContent(content);
             assertNotNull(accessesView.lookup("#accessCodesTable"));
             assertTrue(((Label) accessesView.lookup("#feedbackLabel")).getText().isEmpty());
         });
@@ -945,6 +950,14 @@ class ScopedViewsIT {
 
     @FunctionalInterface
     private interface CheckedAction { void run() throws Exception; }
+
+    private static Node accessContent(Scene scene) {
+        return accessContent(assertInstanceOf(VBox.class, scene.lookup("#contentArea")));
+    }
+
+    private static Node accessContent(VBox content) {
+        return assertInstanceOf(ScrollPane.class, content.getChildren().getFirst()).getContent();
+    }
 
     private record View(TextField name, Spinner<Integer> duration, TableView<Plan> table, Label feedback,
                         Button save, Button update, Button activate, Button deactivate) { }

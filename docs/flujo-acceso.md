@@ -44,6 +44,11 @@ gimnasio, el intento conserva su asociación. Si está vacío, no existe o no
 pertenece a ese gimnasio, el intento se registra sin código asociado; el texto
 ingresado no se guarda.
 
+La decisión y el registro se hacen en una sola transacción. Si el código se
+reconoce, su estado y el de la membresía se bloquean para cambios concurrentes
+hasta confirmar el intento. La aplicación muestra la decisión sólo después de
+confirmar el registro.
+
 Después de validar, el resultado aparece debajo del formulario y el historial
 se actualiza. **Ver historial** muestra código (o **No reconocido**), resultado,
 motivo y fecha/hora; **Actualizar historial** vuelve a consultar los registros.
@@ -60,6 +65,9 @@ existir antes de usar esta función. La migración `V1_3__aislar_intentos_por_gi
 se aplica una sola vez, después de `V1_2__crear_empleados.sql`; revisa y respalda
 la base antes de aplicar migraciones manuales. Las bases nuevas creadas desde el
 modelo físico multitenant ya incluyen la columna y no deben ejecutar V1.3 encima.
+Ambas rutas requieren la migración V1_4 para impedir asociaciones entre
+intentos y códigos de distintos gimnasios desde PostgreSQL. Consulta el
+[orden de migración](../database/migrations/README.md).
 
 El filtro por gimnasio se aplica en las consultas y escrituras de la aplicación.
 Como JavaFX se conecta directamente a PostgreSQL con `DB_*`, esto no reemplaza

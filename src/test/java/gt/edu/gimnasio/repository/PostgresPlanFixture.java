@@ -60,6 +60,11 @@ final class PostgresPlanFixture implements AutoCloseable {
 
     /** Permite sembrar miembros ficticios antes de migrar el modelo 1.0. */
     PostgresPlanFixture(boolean migrateLegacyModel, String legacySetupSql) throws SQLException, IOException {
+        this(migrateLegacyModel, legacySetupSql, null);
+    }
+
+    PostgresPlanFixture(boolean migrateLegacyModel, String legacySetupSql, String beforeAccessIntegritySql)
+            throws SQLException, IOException {
         if (legacySetupSql != null && !migrateLegacyModel) {
             throw new IllegalArgumentException("Los datos previos requieren el modelo legado.");
         }
@@ -94,6 +99,10 @@ final class PostgresPlanFixture implements AutoCloseable {
                 if (migrateLegacyModel) {
                     statement.execute(readProjectFile("database/migrations/V1_3__aislar_intentos_por_gimnasio.sql"));
                 }
+                if (beforeAccessIntegritySql != null) {
+                    statement.execute(beforeAccessIntegritySql);
+                }
+                statement.execute(readProjectFile("database/migrations/V1_4__proteger_aislamiento_intentos.sql"));
             }
             DriverManager.registerDriver(driver);
             registered = true;

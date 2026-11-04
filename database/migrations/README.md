@@ -2,6 +2,16 @@
 
 Esta carpeta contiene cambios que deben aplicarse sobre una base de datos existente y no se ejecutan automáticamente al iniciar la aplicación.
 
+## Versión 1.4: integridad de intentos de acceso (issue #81)
+
+Aplicar `V1_4__proteger_aislamiento_intentos.sql` una sola vez en ambas rutas:
+
+- **Base nueva:** modelo físico multitenant 1.1 → V1_2 → V1_4. El modelo físico ya incluye `intento_acceso.gimnasio_id`.
+- **Base del modelo 1.0:** V1_1 → V1_2 → V1_3 → V1_4, aplicando sólo las migraciones pendientes.
+
+Respaldar la base antes de migrar y ejecutar V1_4 en el esquema que contiene las tablas del sistema.
+La migración rechaza nuevas asociaciones entre intentos y códigos de distintos gimnasios y evita que un traslado de una membresía o código introduzca ese cruce. No modifica los intentos históricos: si uno ya tiene una asociación incorrecta, la aplicación conserva su resultado, motivo y fecha y lo muestra como «No reconocido».
+
 ## Versión 1.3: intentos por gimnasio (issue #36)
 
 `V1_3__aislar_intentos_por_gimnasio.sql` agrega `gimnasio_id` obligatorio a
