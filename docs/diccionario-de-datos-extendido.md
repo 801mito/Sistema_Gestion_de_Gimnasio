@@ -2,16 +2,17 @@
 
 Este documento reúne cuatro formularios relacionados para describir los datos
 del Sistema de Gestión de Gimnasio: flujos, estructuras, elementos y almacenes.
-Complementa el resumen de tablas y campos de la sección 7.2 del DERCAS v1.3;
+Complementa el resumen de tablas y campos de la sección 7.2 del DERCAS v1.4;
 no lo reemplaza. El DERCAS conserva la vista breve del esquema y este documento
 amplía el significado, la composición, el uso y las características de sus datos.
 
 ## Alcance y fuentes del modelo
 
-El alcance corresponde al sistema documentado en el DERCAS v1.3 y sus
+El alcance corresponde al sistema documentado en el DERCAS v1.4 y sus
 migraciones. Los flujos se cotejan con los DFD de contexto y nivel 0, versión
 1.1. Las tablas y atributos se cotejan con el modelo físico PostgreSQL 1.1, la
-migración de empleados V1_2 y la migración de intentos por gimnasio V1_3. Los
+migración de empleados V1_2, la de intentos por gimnasio V1_3 y la protección
+de asociaciones entre gimnasios V1_4. Los
 campos se presentan con el nombre lógico en español y el nombre físico usado
 por PostgreSQL.
 
@@ -66,10 +67,10 @@ almacenes.
 | F02 | Resultado de autenticación y gimnasio asociado | Resultado del inicio de sesión y, si se acepta, contexto de la cuenta autenticada. | 6 Autenticar empleado → Empleado | Pantalla | `RESULTADO_AUTENTICACION` | Por inicio de sesión; no medido. | Si falla, el mensaje no distingue entre usuario, contraseña o estado inválido. |
 | F03 | Datos del miembro | Datos personales capturados al registrar un miembro. | Empleado → 2 Registrar miembro | Pantalla / formulario | `DATOS_MIEMBRO` | Por registro; no medido. | Número de documento, teléfono y correo son opcionales. |
 | F04 | Confirmación de registro | Resultado presentado al empleado después de registrar un miembro. | 2 Registrar miembro → Empleado | Pantalla | `CONFIRMACION_REGISTRO` | Por registro; no medido. | Incluye mensaje de éxito o de validación/error. |
-| F05 | Datos del plan y membresía | Selección del miembro y plan, con la fecha de inicio elegida para asignar una membresía. | Empleado → 3 Gestionar membresía | Pantalla / formulario | `SOLICITUD_MEMBRESIA` | Por asignación; no medido. | La fecha final se calcula con la duración vigente del plan. |
+| F05 | Solicitud de membresía | Selección del miembro y plan, con la fecha de inicio elegida para asignar una membresía. | Empleado → 3 Gestionar membresía | Pantalla / formulario | `SOLICITUD_MEMBRESIA` | Por asignación; no medido. | La fecha final se calcula con la duración vigente del plan. |
 | F06 | Código único generado | Código devuelto después de asignar correctamente la membresía. | 4 Generar código de acceso → Empleado | Pantalla | `CODIGO_GENERADO` | Por asignación exitosa; no medido. | El código se genera para la membresía y se almacena junto con ella en una transacción. |
 | F07 | Código de acceso ingresado manualmente | Texto escrito por el empleado para validar una entrada. | Empleado → 5 Validar acceso y registrar intento | Pantalla / formulario | `CODIGO_INGRESADO` | Por validación; no medido. | Se recortan espacios exteriores. El texto desconocido no se conserva. |
-| F08 | Resultado de acceso | Decisión y motivo que se presentan al empleado. | 5 Validar acceso y registrar intento → Empleado | Pantalla | `RESULTADO_ACCESO` | Por validación; no medido. | El resultado es autorizado o rechazado; el motivo se limita a 100 caracteres al registrarse. |
+| F08 | Resultado de acceso | Decisión y motivo presentados tras confirmar el guardado del intento, o aviso de fallo técnico. | 5 Validar acceso y registrar intento → Empleado | Pantalla | `RESPUESTA_VALIDACION` | Por validación; no medido. | AUTORIZADO y RECHAZADO son decisiones persistidas. ERROR es sólo un aviso transitorio: se revierte la transacción y no se anuncia una decisión ni se garantiza un intento guardado. |
 | F09 | Cuenta de empleado | Cuenta consultada para comprobar el usuario, su hash y el gimnasio asociado. | 6 Empleados → 6 Autenticar empleado | Interno / base de datos | `CUENTA_EMPLEADO` | Por inicio de sesión; no medido. | La cuenta debe estar activa y su gimnasio también. |
 | F10 | Gimnasio asociado | Registro del gimnasio al que pertenece la cuenta autenticada. | 7 Gimnasios → 6 Autenticar empleado | Interno / base de datos | `GIMNASIO_ASOCIADO` | Por inicio de sesión; no medido. | La interfaz no permite escoger un gimnasio al iniciar sesión. |
 | F11 | Datos del miembro registrado | Registro persistido al crear o actualizar la información de un miembro. | 2 Registrar miembro → 1 Miembros | Interno / base de datos | `MIEMBRO_REGISTRADO` | Por operación; no medido. | El `GIMNASIO_ID` proviene del contexto autenticado. |
@@ -82,6 +83,14 @@ almacenes.
 | F18 | Estado de la membresía | Estado y fechas de vigencia consultados para validar el código. | 3 Membresías → 5 Validar acceso y registrar intento | Interno / base de datos | `ESTADO_Y_VIGENCIA_MEMBRESIA` | Por validación; no medido. | La fecha final es vigente durante ese día; se rechaza cuando la fecha actual es posterior. |
 | F19 | Intento de acceso registrado | Registro persistente del resultado de cada validación. | 5 Validar acceso y registrar intento → 5 Intentos de acceso | Interno / base de datos | `INTENTO_ACCESO` | Por validación; no medido. | Incluye el gimnasio de la sesión; la referencia al código es opcional. |
 | F20 | Historial consultado | Intentos consultados para mostrar el historial del gimnasio actual. | 5 Intentos de acceso → 5 Validar acceso y registrar intento | Interno / base de datos | `HISTORIAL_INTENTOS` | Al abrir o actualizar el historial; no medido. | El historial se filtra por el gimnasio autenticado. |
+| F21 | Datos del nuevo plan | Nombre y duración capturados al registrar un plan. | Empleado → 7 Registrar plan | Pantalla / formulario | `DATOS_PLAN` | Por registro; no medido. | El gimnasio proviene de la sesión, no de un campo elegible. |
+| F22 | Plan registrado | Registro persistido del nuevo plan. | 7 Registrar plan → 2 Planes | Interno / base de datos | `PLAN` | Por registro exitoso; no medido. | Nombre único dentro del gimnasio y duración positiva; estado inicial activo. |
+| F23 | Confirmación de registro del plan | Resultado del registro presentado al empleado. | 7 Registrar plan → Empleado | Pantalla | `CONFIRMACION_PLAN` | Por registro; no medido. | Mensaje de éxito o explicación de validación/error. |
+
+En el contexto, «Datos del plan y solicitud de membresía» agrupa F21 y F05;
+«Confirmación de registro» agrupa las respuestas de miembro y plan (F04 y F23).
+Los números de proceso y de almacén pertenecen a categorías distintas: el
+proceso 7 Registrar plan no es el almacén 7 Gimnasios.
 
 ## Formulario 2. Descripción de estructuras de datos
 
@@ -99,7 +108,11 @@ comentarios y no se presenta como columna física adicional.
 | `CONFIRMACION_REGISTRO` | Mensaje de resultado de la operación de miembro. | `RESULTADO_OPERACION + (NOMBRE_COMPLETO) + MENSAJE` | F04 | Una respuesta por operación; no medido. | Los textos son salida de interfaz, no campos de una tabla. |
 | `SOLICITUD_MEMBRESIA` | Selección que el empleado envía para asignar una membresía. | `MIEMBRO_ID + PLAN_ID + FECHA_INICIO` | F05 | Depende de las asignaciones; no medido. | `FECHA_FIN` se calcula como fecha de inicio más duración del plan menos un día. |
 | `MIEMBRO_REGISTRADO` | Registro persistente y datos del miembro en su gimnasio. | `MIEMBRO_ID + GIMNASIO_ID + DATOS_MIEMBRO + MIEMBRO_CREADO_EN` | F11, F12 | Una fila por miembro; cantidades no medidas. | La base aplica la unicidad del documento dentro del gimnasio cuando se proporciona. |
-| `PLAN` | Información del plan ofrecido por un gimnasio. | `PLAN_ID + GIMNASIO_ID + NOMBRE_PLAN + DURACION_DIAS + PLAN_ACTIVO + PLAN_CREADO_EN` | F13 | Una fila por plan; cantidades no medidas. | Duración mínima: un día. Nombre único dentro del gimnasio. |
+| `PLAN` | Información del plan ofrecido por un gimnasio. | `PLAN_ID + GIMNASIO_ID + NOMBRE_PLAN + DURACION_DIAS + PLAN_ACTIVO + PLAN_CREADO_EN` | F13, F22 | Una fila por plan; cantidades no medidas. | Duración mínima: un día. Nombre único dentro del gimnasio. |
+| `DATOS_PLAN` | Valores capturados para registrar un plan. | `NOMBRE_PLAN + DURACION_DIAS` | F21 | Una estructura por solicitud; no medido. | No incluye un gimnasio elegido desde la interfaz. |
+| `CONFIRMACION_PLAN` | Respuesta de la operación de registro de plan. | `RESULTADO_OPERACION + (NOMBRE_PLAN) + MENSAJE` | F23 | Una respuesta por operación; no medido. | Datos de pantalla, no columnas adicionales. |
+| `RESPUESTA_VALIDACION` | Decisión confirmada o aviso de fallo técnico. | `[RESULTADO_ACCESO \| ERROR_VALIDACION]` | F08 | Una respuesta por solicitud; no medido. | Las alternativas son excluyentes. ERROR no es un valor válido de INTENTO_ACCESO.RESULTADO. |
+| `ERROR_VALIDACION` | Aviso de que no se pudo completar la validación. | `ESTADO_ERROR + MENSAJE` | F08 | Sólo ante fallo técnico; no medido. | La transacción se revierte y no se muestra AUTORIZADO o RECHAZADO. |
 | `MEMBRESIA` | Asignación de un plan a un miembro en un gimnasio, con estado y vigencia. | `MEMBRESIA_ID + GIMNASIO_ID + MIEMBRO_ID + PLAN_ID + ESTADO_MEMBRESIA + FECHA_INICIO + FECHA_FIN + MEMBRESIA_CREADA_EN` | F14, F15, F18 | Una fila por asignación; cantidades no medidas. | La base comprueba que plan y miembro pertenezcan al mismo gimnasio. |
 | `MEMBRESIA_PARA_CODIGO` | Referencia de la membresía para generar su código asociado. | `MEMBRESIA_ID + GIMNASIO_ID` | F15 | Una estructura por asignación exitosa; no medido. | `GIMNASIO_ID` se obtiene de la membresía para controlar el alcance; no se duplica en la tabla de códigos. |
 | `CODIGO_ACCESO` | Código activo o inactivo enlazado a una membresía. | `CODIGO_ACCESO_ID + MEMBRESIA_ID + CODIGO + CODIGO_ACTIVO + CODIGO_CREADO_EN` | F06, F16 | Una fila por código generado; cantidades no medidas. | El valor de `CODIGO` es único globalmente. |
@@ -162,8 +175,8 @@ se define una sola vez; la columna de uso enumera todas sus apariciones físicas
 
 | Nombre del elemento (alias; columna física) | Descripción | Características: tipo / longitud / decimales / formatos E-S | Clasificación | Validación, valores y predeterminado | Estructura / almacén |
 |---|---|---|---|---|---|
-| `NOMBRE_PLAN` (Nombre del plan; `PLAN.NOMBRE`) | Nombre comercial del plan. | `VARCHAR(100)`; máximo 100; decimales no aplica; formatos E-S no especificados. | Base | Obligatorio; único dentro de `(GIMNASIO_ID, NOMBRE)`. | `PLAN`; PLANES (#2). |
-| `DURACION_DIAS` (Duración en días; `PLAN.DURACION_DIAS`) | Número de días que aporta el plan a la membresía. | `INT4`; decimales no aplica; formatos E-S no especificados. | Base | Obligatorio; límite inferior 1 día. | `PLAN`, `SOLICITUD_MEMBRESIA`; PLANES (#2), MEMBRESÍAS (#3). |
+| `NOMBRE_PLAN` (Nombre del plan; `PLAN.NOMBRE`) | Nombre comercial del plan. | `VARCHAR(100)`; máximo 100; decimales no aplica; formatos E-S no especificados. | Base | Obligatorio; único dentro de `(GIMNASIO_ID, NOMBRE)`. | `DATOS_PLAN`, `PLAN`, `CONFIRMACION_PLAN`; F13, F21, F22, F23; PLANES (#2). |
+| `DURACION_DIAS` (Duración en días; `PLAN.DURACION_DIAS`) | Número de días que aporta el plan a la membresía. | `INT4`; decimales no aplica; formatos E-S no especificados. | Base | Obligatorio; límite inferior 1 día. | `DATOS_PLAN`, `PLAN`; F13, F21, F22; PLANES (#2). La asignación consulta la duración, no la captura. |
 | `PLAN_ACTIVO` (Plan activo; `PLAN.PLAN_ACTIVO`) | Indica si se puede ofrecer en nuevas asignaciones. | `BOOL`; decimales no aplica; formatos E-S no especificados. | Base | Obligatorio; inicial `TRUE`; `TRUE`: seleccionable, `FALSE`: no se ofrece en nuevas asignaciones. | `PLAN`; PLANES (#2). |
 | `PLAN_CREADO_EN` (Fecha de creación del plan; `PLAN.PLAN_CREADO_EN`) | Fecha y hora de alta del plan. | `TIMESTAMP`; formatos E-S no especificados en el esquema. | Generado | Obligatorio; inicial `CURRENT_TIMESTAMP`. | `PLAN`; PLANES (#2). |
 | `NOMBRES` (Nombres del miembro; `MIEMBRO.NOMBRES`) | Nombres de la persona registrada como miembro. | `VARCHAR(100)`; máximo 100; formatos E-S no especificados. | Base | Obligatorio. | `DATOS_MIEMBRO`, `MIEMBRO_REGISTRADO`; MIEMBROS (#1). |
@@ -204,9 +217,10 @@ persistentes** del modelo físico.
 | `CODIGO_INGRESADO` (Código escrito) | Texto presentado por el empleado para buscar un código. | Texto de interfaz; el esquema no fija la longitud del campo de pantalla. | Base transitoria | Se recortan espacios exteriores. El intento sólo conserva la FK si el código existe y se asocia al gimnasio actual; el texto desconocido no se guarda. | `CODIGO_INGRESADO`; F07. |
 | `ESTADO_AUTENTICACION` (Resultado de login) | Indica si la autenticación permitió abrir la sesión. | Estado lógico de pantalla. | Derivado | No se persiste como columna; el error al usuario es genérico. | `RESULTADO_AUTENTICACION`; F02. |
 | `MENSAJE_GENERAL` (Mensaje genérico) | Explicación mostrada cuando una operación o autenticación no se completa. | Texto de pantalla. | Derivado | No se persiste como columna en el modelo descrito. | `RESULTADO_AUTENTICACION`; F02. |
-| `RESULTADO_OPERACION` (Resultado de registro) | Indica si se completó el registro de miembro. | Estado lógico de pantalla. | Derivado | No se persiste como columna; los detalles dependen del resultado de la validación/operación. | `CONFIRMACION_REGISTRO`; F04. |
+| `RESULTADO_OPERACION` (Resultado de registro) | Indica si se completó el registro de miembro o plan. | Estado lógico de pantalla. | Derivado | No se persiste como columna; los detalles dependen del resultado de la validación/operación. | `CONFIRMACION_REGISTRO`, `CONFIRMACION_PLAN`; F04, F23. |
 | `NOMBRE_COMPLETO` (Nombre del miembro presentado) | Unión de nombres y apellidos que se usa en el mensaje de registro. | Texto de pantalla. | Derivado | Se compone de `NOMBRES` y `APELLIDOS`; no se persiste aparte. | `CONFIRMACION_REGISTRO`; F04. |
-| `MENSAJE` (Mensaje de operación) | Texto de confirmación o explicación de validación que muestra la interfaz. | Texto de pantalla. | Derivado | No se persiste como columna en el modelo descrito. | `CONFIRMACION_REGISTRO`, `RESULTADO_ACCESO`; F04, F08. |
+| `MENSAJE` (Mensaje de operación) | Texto de confirmación o explicación de validación que muestra la interfaz. | Texto de pantalla. | Derivado | No se persiste como columna en el modelo descrito. | `CONFIRMACION_REGISTRO`, `CONFIRMACION_PLAN`, `ERROR_VALIDACION`; F04, F08, F23. |
+| `ESTADO_ERROR` (Error técnico de validación) | Indica que no se completó la operación. | Texto de pantalla: ERROR. | Derivado | Sólo transitorio; no se agrega al dominio AUTORIZADO/RECHAZADO de la base. | `ERROR_VALIDACION`; F08. |
 
 ## Formulario 4. Descripción de almacenes de datos
 
@@ -226,7 +240,7 @@ promedio/máxima y el crecimiento anual no están medidos en la documentación.
 | ID DFD | Nombre / alias | Descripción | Tipo / formato | Estructura almacenada | Flujos de entrada y salida | Clave primaria | Claves secundarias e índices | Comentarios y características |
 |---|---|---|---|---|---|---|---|---|
 | 1 | Miembros / `MIEMBRO` | Datos personales de cada miembro, dentro de un gimnasio. | Computarizado / PostgreSQL | `MIEMBRO_REGISTRADO` | Entrada: F11. Salida: F12. | `MIEMBRO_ID` | Única por `(GIMNASIO_ID, NUMERO_DOCUMENTO)` cuando el documento tiene valor; índice `IX_MIEMBRO_GIMNASIO`; clave `(GIMNASIO_ID, MIEMBRO_ID)` para la relación compuesta. | `NUMERO_DOCUMENTO`, teléfono y correo son opcionales. El gimnasio propietario es obligatorio. Tamaño de registro, cantidad promedio/máxima y crecimiento anual: No documentado. |
-| 2 | Planes / `PLAN` | Planes ofrecidos por cada gimnasio. | Computarizado / PostgreSQL | `PLAN` | Entrada: no representada en el DFD. Salida: F13. | `PLAN_ID` | Única por `(GIMNASIO_ID, NOMBRE)`; clave `(GIMNASIO_ID, PLAN_ID)` para la relación con membresía; índice `IX_PLAN_GIMNASIO`. | La duración mínima es 1 día. Tamaño de registro, cantidad promedio/máxima y crecimiento anual: No documentado. |
+| 2 | Planes / `PLAN` | Planes ofrecidos por cada gimnasio. | Computarizado / PostgreSQL | `PLAN` | Entrada: F22. Salida: F13. | `PLAN_ID` | Única por `(GIMNASIO_ID, NOMBRE)`; clave `(GIMNASIO_ID, PLAN_ID)` para la relación con membresía; índice `IX_PLAN_GIMNASIO`. | La duración mínima es 1 día. Tamaño de registro, cantidad promedio/máxima y crecimiento anual: No documentado. |
 | 3 | Membresías / `MEMBRESIA` | Historial de asignaciones de planes a miembros. | Computarizado / PostgreSQL | `MEMBRESIA` | Entrada: F14. Salidas: F15 y F18. | `MEMBRESIA_ID` | Índice `IX_MEMBRESIA_GIMNASIO`, índice por miembro y plan; índice único parcial `UX_MEMBRESIA_MIEMBRO_ACTIVA` para permitir a lo sumo una membresía `ACTIVA` por miembro. | Las FK compuestas impiden asociar un plan o miembro de otro gimnasio. La fecha final no precede a la inicial. Tamaño de registro, cantidades y crecimiento: No documentado. |
 | 4 | Códigos de acceso / `CODIGO_ACCESO` | Códigos generados para membresías. | Computarizado / PostgreSQL | `CODIGO_ACCESO` | Entrada: F16. Salida: F17. | `CODIGO_ACCESO_ID` | `CODIGO` único global; índice `TIENE_CODIGO_FK` sobre `MEMBRESIA_ID`. | No contiene `GIMNASIO_ID`; el gimnasio se deriva de la membresía. El código no admite espacios. Tamaño de registro, cantidades y crecimiento: No documentado. |
 | 5 | Intentos de acceso / `INTENTO_ACCESO` | Historial de decisiones de acceso, incluido el intento sin código reconocido. | Computarizado / PostgreSQL | `INTENTO_ACCESO` | Entrada: F19. Salida: F20. | `INTENTO_ACCESO_ID` | Índice `IX_INTENTO_GIMNASIO_FECHA` sobre gimnasio, fecha descendente e ID descendente; índice por `CODIGO_ACCESO_ID`. | `CODIGO_ACCESO_ID` es opcional; `GIMNASIO_ID` es obligatorio. El código escrito desconocido no se almacena. Tamaño de registro, cantidades y crecimiento: No documentado. |
@@ -238,9 +252,9 @@ promedio/máxima y el crecimiento anual no están medidos en la documentación.
 - Kendall, Kenneth E. y Kendall, Julie E. *Systems Analysis and Design*, 10.ª
   edición, Pearson Global Edition, 2019, capítulo 8, “Analyzing Systems Using Data
   Dictionaries”, pp. 255–278. [Vista previa editorial](https://api.pageplace.de/preview/DT0400.9781292281476_A39573239/preview-9781292281476_A39573239.pdf).
-- [DERCAS del Sistema de Gestión de Gimnasio, versión 1.3](DERCAS-Sistema-Gimnasio-MVP-v1.3.pdf), secciones 7 y 7.2.
+- [DERCAS del Sistema de Gestión de Gimnasio, versión 1.4](DERCAS-Sistema-Gimnasio-MVP-v1.4.pdf), secciones 7 y 7.2.
 - DFD contexto y nivel 0, versión 1.1: [contexto](diagramas/dfd/DFD_Contexto_1.1.png) y [nivel 0](diagramas/dfd/DFD_Nivel_0_1.1.png).
-- Modelo físico PostgreSQL: [DDL multitenant v1.1](diagramas/der/Sistema_Gimnasio_Modelo_Fisico_v1.1_multitenant.sql), junto con las migraciones [V1_2 de empleados](../database/migrations/V1_2__crear_empleados.sql) y [V1_3 de intentos por gimnasio](../database/migrations/V1_3__aislar_intentos_por_gimnasio.sql).
+- Modelo físico PostgreSQL: [DDL multitenant v1.1](diagramas/der/Sistema_Gimnasio_Modelo_Fisico_v1.1_multitenant.sql), junto con las migraciones [V1_2 de empleados](../database/migrations/V1_2__crear_empleados.sql), [V1_3 de intentos por gimnasio](../database/migrations/V1_3__aislar_intentos_por_gimnasio.sql) y [V1_4 de protección de asociaciones](../database/migrations/V1_4__proteger_aislamiento_intentos.sql).
 
 Los cuatro formularios adaptan la estructura de registro de Kendall y Kendall
 al esquema relacional y al DFD del gimnasio. El formulario de flujo conserva
