@@ -29,6 +29,8 @@ PAGE_W, PAGE_H = letter
 LEFT = 38
 RIGHT = 38
 CONTENT_W = PAGE_W - LEFT - RIGHT
+VERSION = "1.3"
+ISSUE_DATE = "25 de octubre de 2026"
 
 BASE_SCRIPT = ROOT / "scripts" / "build_dercas_v1_2.py"
 spec = importlib.util.spec_from_file_location("dercas_v12_builder", BASE_SCRIPT)
@@ -108,11 +110,11 @@ def cover():
         info = [
             ("Proyecto", "Sistema de Gestión de Gimnasio"),
             ("Documento", "DERCAS del MVP"),
-            ("Versión", "1.3"),
+            ("Versión", VERSION),
             ("Base de datos", "PostgreSQL"),
             ("Responsable", "Jaime Cardona"),
             ("Revisor", "Hendrick Calderon"),
-            ("Fecha", "25 de octubre de 2026"),
+            ("Fecha", ISSUE_DATE),
         ]
         x, y, row_h = LEFT, 628, 23
         c.setStrokeColor(colors.HexColor("#696969"))
@@ -177,7 +179,7 @@ def diagram_page(title: str, path: Path, page_size):
     stream = BytesIO()
     c = canvas.Canvas(stream, pagesize=page_size)
     c.setTitle(title)
-    c.setFillColor(colors.HexColor("#183153"))
+    c.setFillColor(colors.HexColor("#303030"))
     c.setFont("Arial-Bold", 13)
     c.drawString(36, page_h - 30, title)
     c.setFillColor(colors.HexColor("#555555"))
@@ -206,7 +208,7 @@ def revisions():
         ("1.2", "17 de octubre de 2026", "Integración multitenant en el requerimiento, alcance, actores, requisitos, reglas, modelo, diccionario, seguridad y criterios de aceptación."),
         ("1.3", "25 de octubre de 2026", "Incorporación de los DFD y modelos DER versión 1.1; se conserva el alcance funcional multigimnasio de la versión 1.2."),
     ], [52, 131, CONTENT_W - 183], 7.8))
-    s += [Spacer(1, 22), base.p("Aprobación correspondiente a la versión 1.3:", base.SMALL), Spacer(1, 26), ApprovalBlock()]
+    s += [Spacer(1, 22), base.p(f"Aprobación correspondiente a la versión {VERSION}:", base.SMALL), Spacer(1, 26), ApprovalBlock()]
     return base.fragment(s)
 
 
@@ -245,7 +247,7 @@ def footer(page, page_number, diagram_numbers):
         c.setFont("Arial-Bold", 9)
         c.drawString(LEFT, page_h - 28, "DERCAS - Sistema de Gestión de Gimnasio")
     c.setFont("Arial", 9)
-    c.drawRightString(page_w - RIGHT, 25, f"Versión 1.3 | Página {page_number}")
+    c.drawRightString(page_w - RIGHT, 25, f"Versión {VERSION} | Página {page_number}")
     c.save()
     stream.seek(0)
     page.merge_page(PdfReader(stream).pages[0])
@@ -338,7 +340,7 @@ def main():
         footer(page, i, diagram_numbers)
     dictionary_link(writer)
     writer.add_metadata({
-        "/Title": "DERCAS - Sistema de Gestión de Gimnasio - MVP v1.3",
+        "/Title": f"DERCAS - Sistema de Gestión de Gimnasio - MVP v{VERSION}",
         "/Author": "Jaime Cardona",
         "/Subject": "Requisitos del MVP y diagramas actualizados del sistema",
     })
