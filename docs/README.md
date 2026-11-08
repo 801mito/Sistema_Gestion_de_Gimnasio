@@ -2,7 +2,7 @@
 
 Esta carpeta contiene la documentación del proyecto.
 
-- [DERCAS vigente, versión 1.4](DERCAS-Sistema-Gimnasio-MVP-v1.4.pdf). La versión 1.3 se conserva como antecedente.
+- [DERCAS vigente, versión 1.5](DERCAS-Sistema-Gimnasio-MVP-v1.5.pdf). Las versiones anteriores se conservan como antecedentes.
 - [Revisión final: cambios, comprobaciones y límites](revision-final-dercas.md).
 
 - [Pruebas del aislamiento de planes por gimnasio](pruebas-planes-multitenant.md).
