@@ -34,6 +34,24 @@ se propagan como `SQLException` para tratarlos como problemas de infraestructura
 no como credenciales incorrectas. La llamada recibe un `char[]`; quien llama
 debe borrarlo cuando ya no lo necesite y no debe registrarlo en logs.
 
+## Alta administrativa de gimnasios y empleados
+
+El MVP no incluye pantallas de alta o administración de gimnasios y empleados
+ni autorregistro. El administrador técnico registra primero el gimnasio mediante
+SQL en PostgreSQL, por ejemplo desde pgAdmin, con acceso controlado a la base.
+Después puede aprovisionar su primera cuenta con la herramienta local descrita
+abajo. No hace falta crear otra base de datos por cada gimnasio.
+
+`EmployeeBootstrap` no es una herramienta general de gestión de empleados:
+rechaza el alta si el gimnasio ya tiene alguna cuenta, incluso si está inactiva.
+No se incluye un panel ni una herramienta administrativa para agregar empleados
+adicionales al mismo gimnasio. Esa gestión queda fuera del alcance del MVP;
+no debe resolverse reutilizando el aprovisionamiento inicial ni guardando
+contraseñas en texto plano.
+
+Estas limitaciones se explicitan en las secciones 2 y 8.1 del
+[DERCAS vigente, versión 1.5](DERCAS-Sistema-Gimnasio-MVP-v1.5.pdf).
+
 ## Preparar el primer empleado (avance de la issue #64)
 
 Tras aplicar `V1_2__crear_empleados.sql` en **una base de prueba o instalación
